@@ -1,4 +1,5 @@
 import type { RedisService } from "@/services/redis";
+import type { UserPayload } from "@/controllers/token";
 
 declare global {
   namespace Express {
@@ -8,3 +9,5 @@ declare global {
     }
   }
 }
+
+export {};

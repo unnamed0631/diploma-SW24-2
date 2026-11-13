@@ -1,7 +1,7 @@
 import { useTranslation } from "@/lib/language";
 import { View, Text, Pressable } from "react-native";
 import { useAppTheme } from "@/lib/theme";
-import { ThemeText, ThemeView } from "@/components";
+import { ThemeText } from "@/components";
 import Animated, {
   interpolate,
   interpolateColor,
@@ -39,7 +39,9 @@ export default function Steps() {
     const color = interpolateColor(
       pressed.value,
       [0, 1],
-      theme === "dark" ? ["#ffffff60", "#ffffff00"] : ["#00000040", "#00000030"]
+      theme === "dark"
+        ? ["#ffffff60", "#ffffff00"]
+        : ["#00000040", "#00000030"],
     );
     const boxShadow = `0px 0px ${blurRadius} 0px ${color}`;
     return {

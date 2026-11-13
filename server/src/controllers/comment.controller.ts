@@ -7,7 +7,7 @@ import { AuthenticatedRequest } from "./token";
 class CommentController {
   public static async createComment(
     req: AuthenticatedRequest,
-    res: Response
+    res: Response,
   ): Promise<any> {
     try {
       const { content, postId } = req.body;
@@ -29,14 +29,13 @@ class CommentController {
       }
       const comment = await Comment.create({
         content,
-        postId,
         author: user._id,
         blogId: postId,
       });
       await Blog.findByIdAndUpdate(
         postId,
         { $push: { comments: comment._id } },
-        { new: true }
+        { new: true },
       );
       return res.status(201).json(comment);
     } catch (error) {
@@ -74,7 +73,7 @@ class CommentController {
 
   public static async likeComment(
     req: AuthenticatedRequest,
-    res: Response
+    res: Response,
   ): Promise<any> {
     try {
       const { commentId, postId } = req.params;

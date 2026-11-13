@@ -9,6 +9,7 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from "react-native";
+import type { TextInputInstance } from "react-native";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { ThemeView, BlurEllipse } from "@/components";
@@ -23,11 +24,11 @@ const RegisterForm = () => {
   const { loading, register, user } = use(AuthContext);
   const store = useRegisterStore();
   const { setField } = store;
-  const emailRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInputInstance>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
 
   const handleRegister = () => {
-    const { progress, setField, ...rest } = store;
+    const { ...rest } = store;
     register({
       ...rest,
     });

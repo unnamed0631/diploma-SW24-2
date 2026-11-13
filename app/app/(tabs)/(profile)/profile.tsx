@@ -10,6 +10,34 @@ import { Icon } from "react-native-paper";
 import { useAppTheme } from "@/lib/theme";
 import { AuthContext } from "@/context/auth";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+type TabButtonProps = {
+  children: string;
+  selected: boolean;
+  onPress: () => void;
+};
+
+const TabButton = ({ children, selected, onPress }: TabButtonProps) => (
+  <View
+    className={`flex-1 overflow-hidden  ${
+      selected ? "bg-white dark:bg-blue-600 rounded-full h-9" : ""
+    }`}
+  >
+    <Pressable
+      android_ripple={{
+        color: "#00000020",
+        radius: 40,
+      }}
+      onPress={onPress}
+      className="flex-1 justify-center items-center"
+    >
+      <ThemeText className={`${selected ? "font-bold" : ""}`}>
+        {children}
+      </ThemeText>
+    </Pressable>
+  </View>
+);
+
 const Tabs = () => {
   const { t } = useTranslation();
   const tabRef = useRef<FlatList>(null);
@@ -45,7 +73,7 @@ const Tabs = () => {
       </View>
       //ene hesgiin unduriig uur hun ashiglah uyd ni tengis zasna geseen utsandaa taaruulad 350 iig uurchlurui ahh
     ),
-    [width]
+    [width],
   );
 
   const scrollTo = (index: number) => {
@@ -71,43 +99,35 @@ const Tabs = () => {
       offset: width * index,
       index,
     }),
-    [width]
+    [width],
   );
 
-  const TabButton = ({ children, tab }: { children: string; tab: number }) => {
-    const handlePress = () => {
-      scrollTo(tab);
-      setselectedTab(tab);
-    };
-    const selected = selectedTab === tab;
-    return (
-      <View
-        className={`flex-1 overflow-hidden  ${
-          selected ? "bg-white dark:bg-blue-600 rounded-full h-9" : ""
-        }`}
-      >
-        <Pressable
-          android_ripple={{
-            color: "#00000020",
-            radius: 40,
-          }}
-          onPress={handlePress}
-          className="flex-1 justify-center items-center"
-        >
-          <ThemeText className={`${selected ? "font-bold" : ""}`}>
-            {children}
-          </ThemeText>
-        </Pressable>
-      </View>
-    );
+  const handleTabPress = (tab: number) => {
+    scrollTo(tab);
+    setselectedTab(tab);
   };
 
   return (
     <View className="flex-1 w-[85%] my-2" onLayout={setDimensions}>
       <View className="flex-row justify-between w-full items-center h-10 bg-blue-50 px-1 rounded-full dark:bg-gray-800">
-        <TabButton tab={0}>{t("profile1.timeline")}</TabButton>
-        <TabButton tab={1}>{t("profile1.stats")}</TabButton>
-        <TabButton tab={2}>{t("profile1.duels")}</TabButton>
+        <TabButton
+          selected={selectedTab === 0}
+          onPress={() => handleTabPress(0)}
+        >
+          {t("profile1.timeline")}
+        </TabButton>
+        <TabButton
+          selected={selectedTab === 1}
+          onPress={() => handleTabPress(1)}
+        >
+          {t("profile1.stats")}
+        </TabButton>
+        <TabButton
+          selected={selectedTab === 2}
+          onPress={() => handleTabPress(2)}
+        >
+          {t("profile1.duels")}
+        </TabButton>
       </View>
       <FlatList
         ref={tabRef}

@@ -1,12 +1,9 @@
 import jwt from "jsonwebtoken";
-import { config } from "dotenv";
 import bcryptjs from "bcryptjs";
 import { Request, Response, NextFunction } from "express";
 import RefreshToken from "@/models/refreshToken";
 import { IUser } from "@/models/user";
 import { redisService } from "@/services/redis";
-
-config();
 
 export interface UserPayload {
   id: string;
@@ -28,7 +25,7 @@ export const generateAccessToken = (user: IUser): string => {
 
   return jwt.sign(
     {
-      id: user.id || user._id,
+      id: user._id.toString(),
       role: user.role,
       username: user.username,
       email: user.email,
@@ -38,7 +35,7 @@ export const generateAccessToken = (user: IUser): string => {
     secret,
     {
       expiresIn: "3h",
-    }
+    },
   );
 };
 
@@ -48,7 +45,7 @@ export const generateRefreshToken = async (user: IUser): Promise<string> => {
 
   const refreshToken = jwt.sign(
     {
-      id: user._id || user.id,
+      id: user._id.toString(),
       role: user.role,
       username: user.username,
       email: user.email,
@@ -58,14 +55,14 @@ export const generateRefreshToken = async (user: IUser): Promise<string> => {
     secret,
     {
       expiresIn: "30d",
-    }
+    },
   );
   const hashedToken = await bcryptjs.hash(refreshToken, 10);
 
   await RefreshToken.create({
     tokenHash: hashedToken,
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-    userId: user._id || user.id,
+    userId: user._id,
   });
 
   return refreshToken;
@@ -74,7 +71,7 @@ export const generateRefreshToken = async (user: IUser): Promise<string> => {
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;

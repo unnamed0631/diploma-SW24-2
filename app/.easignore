@@ -1,6 +1,17 @@
 node_modules/
 npm-debug.log
 
+# Never upload local secrets to EAS Build
+.env*
+!.env.example
+.env.eas-simulator
+firebase_config.json
+*.keystore
+*.jks
+
+# Not needed in the build archive
+docs/
+
 /android
 /ios
 android/

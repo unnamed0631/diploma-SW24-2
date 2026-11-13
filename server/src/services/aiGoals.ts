@@ -1,6 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 interface UserStats {
   age?: number;
@@ -23,11 +23,9 @@ interface DailyGoals {
 }
 
 export async function generateDailyGoals(
-  userStats: UserStats
+  userStats: UserStats,
 ): Promise<DailyGoals> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
     const prompt = `As a health and fitness expert, please provide personalized daily goals for a user with the following characteristics:
     Age: ${userStats.age || "Not specified"}
     Weight: ${userStats.weight || "Not specified"} kg
@@ -60,8 +58,11 @@ export async function generateDailyGoals(
       "rdcGoal": number
     }`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const result = await genAI.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: prompt,
+    });
+    const text = result.text ?? "";
 
     // Extract JSON from the response
     const jsonMatch = text.match(/\{[\s\S]*\}/);

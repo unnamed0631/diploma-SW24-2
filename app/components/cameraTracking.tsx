@@ -13,7 +13,7 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useTranslation } from "@/lib/language";
 
-const API_KEY = "29e1ca53-d185-46f8-b8a2-cf97d47ee249";
+const API_KEY = process.env.EXPO_PUBLIC_POSETRACKER_API_KEY;
 const POSETRACKER_API = "https://app.posetracker.com/pose_tracker/tracking";
 const { width, height } = Dimensions.get("window");
 
@@ -23,12 +23,12 @@ export default function CameraTracking() {
   const [permission, requestPermission] = useCameraPermissions();
   const { t } = useTranslation();
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const successAnim = useRef(new Animated.Value(0)).current;
+  const [fadeAnim] = useState(() => new Animated.Value(0));
+  const [successAnim] = useState(() => new Animated.Value(0));
   const prevReadyRef = useRef<boolean | null>(null);
 
   const [countdown, setCountdown] = useState<number | null>(null);
-  const countdownRef = useRef<number | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!permission?.granted) {
@@ -124,6 +124,18 @@ export default function CameraTracking() {
       console.error("Error processing message:", error);
     }
   };
+
+  if (!API_KEY) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.webViewContainer, styles.missingKeyContainer]}>
+          <Text style={styles.statusText}>
+            PoseTracker is not configured. Set EXPO_PUBLIC_POSETRACKER_API_KEY.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   const exercise = "squat";
   const difficulty = "easy";
@@ -224,6 +236,11 @@ const styles = StyleSheet.create({
   },
   webViewContainer: {
     flex: 7,
+  },
+  missingKeyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
   },
   webView: {
     width: "100%",

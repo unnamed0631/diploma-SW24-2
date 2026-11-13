@@ -4,3 +4,15 @@ node_modules
 /lib
 
 node_modules
+
+# Environment files
+.env*.local
+.env.eas-simulator
+
+# Generated native projects
+/android
+/ios
+
+# Expo and build output
+.expo/
+dist/

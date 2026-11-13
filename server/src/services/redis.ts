@@ -1,6 +1,4 @@
 import { createClient, RedisClientType } from "redis";
-import { config } from "dotenv";
-config();
 
 type RedisValue = string | null;
 
@@ -18,7 +16,7 @@ class RedisService {
       const redisUrl = process.env.REDIS_URL as string;
       if (!redisUrl) {
         console.warn(
-          "REDIS_URL not found in environment variables, using fallback cache"
+          "REDIS_URL not found in environment variables, using fallback cache",
         );
         return;
       }
@@ -29,7 +27,7 @@ class RedisService {
           reconnectStrategy: (retries) => {
             if (retries > 10) {
               console.warn(
-                "Max reconnection attempts reached, using fallback cache"
+                "Max reconnection attempts reached, using fallback cache",
               );
               return false;
             }
@@ -68,7 +66,7 @@ class RedisService {
     } catch (err: any) {
       console.warn(
         "Failed to initialize Redis, using fallback cache:",
-        err.message
+        err.message,
       );
       this.isConnected = false;
     }
@@ -93,7 +91,7 @@ class RedisService {
     } catch (err: any) {
       console.warn(
         "Error getting from Redis, using fallback cache:",
-        err.message
+        err.message,
       );
       return this.fallbackCache.get(key) ?? null;
     }
@@ -102,7 +100,7 @@ class RedisService {
   async set(
     key: string,
     value: string,
-    expireTime: number = 3600
+    expireTime: number = 3600,
   ): Promise<void> {
     if (!key || value === undefined) {
       console.warn("Attempted to set with null/undefined key or value");
@@ -123,7 +121,7 @@ class RedisService {
     } catch (err: any) {
       console.warn(
         "Error setting in Redis, using fallback cache:",
-        err.message
+        err.message,
       );
       this.fallbackCache.set(key, value);
       setTimeout(() => {
@@ -149,6 +147,19 @@ class RedisService {
     } catch (err: any) {
       console.warn("Error deleting from Redis:", err.message);
       this.fallbackCache.delete(key);
+    }
+  }
+
+  async quit(): Promise<void> {
+    try {
+      if (this.client) {
+        await this.client.quit();
+      }
+    } catch (err: any) {
+      console.warn("Error quitting Redis:", err.message);
+    } finally {
+      this.client = null;
+      this.isConnected = false;
     }
   }
 

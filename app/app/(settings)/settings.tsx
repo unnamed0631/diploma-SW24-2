@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from "react";
+import React, { use } from "react";
 import { View, Pressable, Switch, Text } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { ThemeView, ThemeText } from "@/components";
@@ -15,7 +15,7 @@ export default function Settings() {
   const router = useRouter();
   const navigation = useNavigation();
   const { t, i18n } = useTranslation();
-  const [isSwitchOn, setIsSwitchOn] = useState<boolean>(false);
+  const isSwitchOn = theme === "dark";
 
   const toggleLang = () => {
     const newLang = i18n.language === "en" ? "mn" : "en";
@@ -25,7 +25,6 @@ export default function Settings() {
   const isDark = theme === "dark";
   const toggleSwitch = () => {
     const newTheme = isDark ? "light" : "dark";
-    setIsSwitchOn(newTheme === "dark");
     setTheme(newTheme);
   };
 
@@ -36,11 +35,6 @@ export default function Settings() {
       router.push("/");
     }
   };
-
-  useEffect(() => {
-    setIsSwitchOn(theme === "dark");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <ThemeView className="pt-8 px-10 flex-1">

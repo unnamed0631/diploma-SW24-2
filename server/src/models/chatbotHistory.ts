@@ -1,4 +1,4 @@
-import { Document, Model, Schema, model } from "mongoose";
+import { HydratedDocument, Model, Schema, model } from "mongoose";
 
 export type MessageRole = "system" | "user" | "model";
 
@@ -8,16 +8,18 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-export interface IChat extends Document {
+export interface IChat {
   userId: string;
   messages: ChatMessage[];
   createdAt: Date;
   updatedAt: Date;
-  addMessage: (role: MessageRole, content: string) => Promise<IChat>;
+  addMessage: (role: MessageRole, content: string) => Promise<ChatDocument>;
 }
 
+export type ChatDocument = HydratedDocument<IChat>;
+
 export interface ChatModel extends Model<IChat> {
-  findOrCreate: (userId: string) => Promise<IChat>;
+  findOrCreate: (userId: string) => Promise<ChatDocument>;
 }
 
 const chatMessageSchema = new Schema<ChatMessage>(
@@ -36,7 +38,7 @@ const chatMessageSchema = new Schema<ChatMessage>(
       default: Date.now,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const chatSchema = new Schema<IChat>(
@@ -50,16 +52,16 @@ const chatSchema = new Schema<IChat>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 chatSchema.index({ userId: 1, createdAt: -1 });
 
 chatSchema.methods.addMessage = async function (
-  this: IChat,
+  this: ChatDocument,
   role: MessageRole,
-  content: string
-): Promise<IChat> {
+  content: string,
+): Promise<ChatDocument> {
   this.messages.push({ role, content, timestamp: new Date() });
   this.updatedAt = new Date();
   return this.save();
@@ -67,8 +69,8 @@ chatSchema.methods.addMessage = async function (
 
 chatSchema.statics.findOrCreate = async function (
   this: Model<IChat>,
-  userId: string
-): Promise<IChat> {
+  userId: string,
+): Promise<ChatDocument> {
   let chat = await this.findOne({ userId });
   if (!chat) {
     chat = await this.create({

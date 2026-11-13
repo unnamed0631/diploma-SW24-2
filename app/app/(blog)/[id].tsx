@@ -50,12 +50,14 @@ export default function PostDetailScreen() {
       const fetchedPost = await getPostById(id as string);
       setPost(fetchedPost as Post);
       setLikeCount(fetchedPost?.likes.length || 0);
+      setIsLiked(fetchedPost?.likes?.includes(currentUser?._id ?? "") ?? false);
+      setIsBookmarked(fetchedPost?.isBookmarked ?? false);
     })();
     (async () => {
       const fetchedComments = await getComments(id as string);
       setComments(fetchedComments as Comment[]);
     })();
-  }, [id, getPostById, getComments]);
+  }, [id, getPostById, getComments, currentUser]);
 
   // im fetchin comments
   useEffect(() => {
@@ -63,18 +65,6 @@ export default function PostDetailScreen() {
       getComments(post._id);
     }
   }, [post, getComments]);
-
-  useEffect(() => {
-    if (post) {
-      setIsLiked(post.likes?.includes(currentUser?._id ?? ""));
-    }
-  }, [post, currentUser]);
-
-  useEffect(() => {
-    if (post) {
-      setIsBookmarked(post.isBookmarked ?? false);
-    }
-  }, [post]);
 
   if (!post || !currentUser) {
     return (

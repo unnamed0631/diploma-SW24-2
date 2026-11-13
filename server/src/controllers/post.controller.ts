@@ -2,12 +2,13 @@ import Post from "@/models/post";
 import { AuthenticatedRequest } from "./token";
 import { Request, Response } from "express";
 import User from "@/models/user";
+import mongoose from "mongoose";
 import { uploadBlogImage } from "@/helpers/uploadImage";
 
 class PostController {
   public static async createPost(
     req: AuthenticatedRequest,
-    res: Response
+    res: Response,
   ): Promise<any> {
     try {
       const { title, content } = req.body;
@@ -50,7 +51,7 @@ class PostController {
 
   public static async getUserPosts(
     req: AuthenticatedRequest,
-    res: Response
+    res: Response,
   ): Promise<any> {
     try {
       const userId = req.user?.id;
@@ -77,7 +78,7 @@ class PostController {
           { $inc: { views: 1 } },
           {
             new: true,
-          }
+          },
         ).populate("author", "username image");
         if (!blog) {
           return res.status(404).json({ error: "Post not found" });
@@ -107,11 +108,11 @@ class PostController {
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
-      const isLiked = post.likes.includes(userId);
+      const isLiked = post.likes.some((id) => id.toString() === userId);
       if (isLiked) {
-        post.likes = post.likes.filter((id) => id !== userId);
+        post.likes = post.likes.filter((id) => id.toString() !== userId);
       } else {
-        post.likes.push(userId);
+        post.likes.push(new mongoose.Types.ObjectId(userId));
       }
       await post.save();
       console.log("post liked");

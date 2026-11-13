@@ -1,13 +1,13 @@
-import React from 'react';
-import {LinearGradient, Path, Skia} from '@shopify/react-native-skia';
-import {SharedValue} from 'react-native-reanimated';
+import React from "react";
+import { LinearGradient, Path, Skia } from "@shopify/react-native-skia";
+import { SharedValue } from "react-native-reanimated";
 
 type Props = {
   chartHeight: number;
   chartWidth: number;
   chartMargin: number;
   curvedLine: string;
-  animationGradient: SharedValue<{x: number; y: number}>;
+  animationGradient: SharedValue<{ x: number; y: number }>;
 };
 
 const Gradient = ({
@@ -22,28 +22,25 @@ const Gradient = ({
     width: number,
     height: number,
   ) => {
-    // Create a path from the chart line
-    const gradientAreaSplit = Skia.Path.MakeFromSVGString(chartLine);
-
-    // Close the path if exists
-    if (gradientAreaSplit) {
-      gradientAreaSplit
-        // add line to the bottom right corner
-        .lineTo(width - chartMargin, height)
-        // add line to the bottom left corner
-        .lineTo(chartMargin, height)
-        // add line to the first point
-        .lineTo(chartMargin, gradientAreaSplit.getPoint(0).y);
+    const sourcePath = Skia.Path.MakeFromSVGString(chartLine);
+    if (!sourcePath) {
+      return null;
     }
 
-    return gradientAreaSplit;
+    const builder = Skia.PathBuilder.Make();
+    builder.addPath(sourcePath);
+    builder.lineTo(width - chartMargin, height);
+    builder.lineTo(chartMargin, height);
+    builder.lineTo(chartMargin, sourcePath.getPoint(0).y);
+
+    return builder.detach();
   };
   return (
     <Path path={getGradientArea(curvedLine!, chartWidth, chartHeight)!}>
       <LinearGradient
-        start={{x: 0, y: 0}}
+        start={{ x: 0, y: 0 }}
         end={animationGradient}
-        colors={['#4C91F9', 'rgba(76, 145, 249, 0)']}
+        colors={["#4C91F9", "rgba(76, 145, 249, 0)"]}
       />
     </Path>
   );

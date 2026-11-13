@@ -40,7 +40,7 @@ async function updateUserGoals(user: IUser) {
         age: user.birthday
           ? Math.floor(
               (Date.now() - new Date(user.birthday).getTime()) /
-                (365.25 * 24 * 60 * 60 * 1000)
+                (365.25 * 24 * 60 * 60 * 1000),
             )
           : undefined,
         weight: user.weight,
@@ -74,7 +74,7 @@ class AuthController {
       if (token) {
         const decoded = jwt.verify(
           token,
-          process.env.SECRET_ACCESS_TOKEN as string
+          process.env.SECRET_ACCESS_TOKEN as string,
         ) as UserPayload;
 
         if (!decoded) {
@@ -190,7 +190,7 @@ class AuthController {
         await User.create([{ ...req.body, password: hashedPassword }], {
           session,
         })
-      )[0] as IUser;
+      )[0];
 
       const accessToken = generateAccessToken(newUser);
       const refreshToken = await generateRefreshToken(newUser);
@@ -198,14 +198,9 @@ class AuthController {
 
       await session.commitTransaction();
 
-      const userObj = {
-        ...newUser.toJSON(),
-        dailyGoals: dailyGoal,
-      };
-
-      if ("password" in userObj) {
-        delete userObj.password;
-      }
+      const userObj: Record<string, unknown> = { ...newUser.toJSON() };
+      userObj.dailyGoals = dailyGoal;
+      delete userObj.password;
 
       res.status(201).json({
         message: "User registered successfully",
@@ -224,7 +219,7 @@ class AuthController {
 
   public static async update(
     req: AuthenticatedRequest,
-    res: Response
+    res: Response,
   ): Promise<any> {
     if ((!req.body || Object.keys(req.body).length === 0) && !req.file) {
       return res.status(400).json({ message: "Request is empty" });
@@ -269,7 +264,7 @@ class AuthController {
 
       req.redis.set(
         `user:${user._id}`,
-        JSON.stringify({ ...newUser!.toJSON() })
+        JSON.stringify({ ...newUser!.toJSON() }),
       );
 
       const accessToken = generateAccessToken(newUser!);
@@ -292,7 +287,7 @@ class AuthController {
       const authHeader = req.headers.authorization;
       const token = authHeader?.startsWith("Bearer ")
         ? authHeader.slice(7)
-        : null;
+        : req.cookies?.refreshToken || req.body?.refreshToken || null;
 
       if (!token) {
         return res.status(400).json({ message: "No token provided" });
@@ -300,7 +295,7 @@ class AuthController {
 
       return jwt.verify(
         token,
-        process.env.REFRESH_TOKEN_SECRET as string,
+        process.env.SECRET_REFRESH_TOKEN as string,
         async (err: Error | null, decoded: any) => {
           if (err) {
             return res.status(403).json({ message: "Invalid token" });
@@ -308,8 +303,15 @@ class AuthController {
 
           await User.findByIdAndUpdate(decoded.id, { token: null }).exec();
           await RefreshToken.deleteMany({ userId: decoded.id }).exec();
+
+          res.clearCookie("refreshToken", {
+            httpOnly: true,
+            sameSite: "none",
+            secure: true,
+          });
+
           res.status(200).json({ message: "User logged out successfully" });
-        }
+        },
       );
     } catch (e) {
       console.error("logout error:", e);
@@ -319,15 +321,15 @@ class AuthController {
 
   public static async generateNewToken(
     req: Request,
-    res: Response
+    res: Response,
   ): Promise<any> {
     try {
       let refreshToken = null;
       const authHeader = req.headers.authorization;
-      if (authHeader) {
-        refreshToken = authHeader.split(" ")[1];
-      } else if (req.body.refreshToken) {
-        refreshToken = req.body.refreshToken;
+      if (authHeader?.startsWith("Bearer ")) {
+        refreshToken = authHeader.slice(7);
+      } else if (req.cookies?.refreshToken || req.body?.refreshToken) {
+        refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
       }
 
       if (!refreshToken) {
@@ -337,7 +339,7 @@ class AuthController {
       try {
         const decoded = jwt.verify(
           refreshToken,
-          process.env.SECRET_REFRESH_TOKEN as string
+          process.env.SECRET_REFRESH_TOKEN as string,
         ) as UserPayload;
 
         if (!decoded) {
@@ -397,7 +399,7 @@ class AuthController {
 
   public static async sendVerificationEmail(
     req: Request,
-    res: Response
+    res: Response,
   ): Promise<any> {
     const { email } = req.body;
 
@@ -410,7 +412,7 @@ class AuthController {
       const token = jwt.sign(
         { id: user._id },
         process.env.EMAIL_VERIFICATION_SECRET as string,
-        { expiresIn: "1h" }
+        { expiresIn: "1h" },
       );
 
       const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
@@ -445,7 +447,7 @@ class AuthController {
     try {
       const decoded = jwt.verify(
         token as string,
-        process.env.EMAIL_VERIFICATION_SECRET as string
+        process.env.EMAIL_VERIFICATION_SECRET as string,
       ) as UserPayload;
 
       const user = await User.findById(decoded.id).select("-password").exec();
@@ -492,7 +494,7 @@ class AuthController {
         }),
         {
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        }
+        },
       );
       const data = response.data;
       const userInfo = jose.decodeJwt(data.id_token) as googleUser;
@@ -538,7 +540,7 @@ class AuthController {
       }
 
       const url = new URL(
-        req.protocol + "://" + req.get("host") + req.originalUrl
+        req.protocol + "://" + req.get("host") + req.originalUrl,
       );
       let idpClientId: string;
 
@@ -600,13 +602,13 @@ class AuthController {
     });
 
     return res.redirect(
-      APP_SCHEME + "/(auth)/signup" + "?" + outgoingParams.toString()
+      APP_SCHEME + "/(auth)/signup" + "?" + outgoingParams.toString(),
     );
   }
 
   public static async food(
     req: AuthenticatedRequest,
-    res: Response
+    res: Response,
   ): Promise<any> {
     let user = null;
     let goal = null;
@@ -638,7 +640,7 @@ class AuthController {
 
   public static async foodImage(
     req: AuthenticatedRequest,
-    res: Response
+    res: Response,
   ): Promise<any> {
     console.log("req.body", req.file);
     const image = req.file;
@@ -653,7 +655,7 @@ class AuthController {
 
   public static async exercise(
     req: AuthenticatedRequest,
-    res: Response
+    res: Response,
   ): Promise<any> {
     try {
       const user = await User.findById(req.user.id)

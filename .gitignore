@@ -75,3 +75,20 @@ app/package-lock.json
 /.vscode
 /server/.env
 /.vscode
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+.env.local
+.env.eas-simulator
+firebase_config.json
+
+# Native build artifacts and credentials
+app/android/
+app/ios/
+*.keystore
+*.jks
+
+# Bun lockfile must be committed (do not ignore it)
+!bun.lock

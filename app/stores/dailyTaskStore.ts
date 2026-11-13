@@ -49,7 +49,7 @@ interface DailyTaskState {
   setTaskProgress: (taskId: number, currentProgress: number) => Promise<void>;
   checkAndIncrementStreak: () => Promise<void>;
   setTriggerAuthStreakIncrement: (
-    fn: (() => Promise<boolean | void>) | null
+    fn: (() => Promise<boolean | void>) | null,
   ) => void; // Action to set the trigger
 
   // New actions
@@ -245,13 +245,13 @@ const useDailyTaskStore = create<DailyTaskState>((set, get) => ({
           id: timestamp + selectedTasks.length, // Unique ID for this instance
           templateId: template.templateId,
           categoryId: template.categoryId,
-          title: t(template.titleKey as any, { count: template.max }),
-          target: t(template.targetKey as any, { count: template.max }),
+          title: t(template.titleKey as any, { count: template.max } as any),
+          target: t(template.targetKey as any, { count: template.max } as any),
           current: 0,
           max: template.max,
           completed: false,
           icon: template.icon,
-          unit: t(template.unitKey as any, { count: template.max }),
+          unit: t(template.unitKey as any, { count: template.max } as any),
         });
         usedTemplateIds.add(template.templateId);
       }
@@ -304,12 +304,12 @@ const useDailyTaskStore = create<DailyTaskState>((set, get) => ({
         await AsyncStorage.setItem(STORAGE_KEY_LAST_GENERATED_DATE, today);
         await AsyncStorage.setItem(
           STORAGE_KEY_STREAK_INCREMENTED_TODAY,
-          "false"
+          "false",
         );
       } catch (storageError) {
         console.error(
           "Failed to save fallback tasks to AsyncStorage:",
-          storageError
+          storageError,
         );
       }
       set({
@@ -368,10 +368,10 @@ const useDailyTaskStore = create<DailyTaskState>((set, get) => ({
       set({ tasks: updatedTasks });
       await AsyncStorage.setItem(
         STORAGE_KEY_TASKS,
-        JSON.stringify(updatedTasks)
+        JSON.stringify(updatedTasks),
       );
       console.log(
-        `DailyTaskStore: Task ${taskId} progress set to ${newCurrentProgress}.`
+        `DailyTaskStore: Task ${taskId} progress set to ${newCurrentProgress}.`,
       );
       await get().checkAndIncrementStreak();
     } else {
@@ -396,7 +396,7 @@ const useDailyTaskStore = create<DailyTaskState>((set, get) => ({
     if (allTasksCompleted && !streakIncrementedToday) {
       if (triggerAuthStreakIncrement) {
         console.log(
-          "DailyTaskStore: All tasks completed, attempting to trigger AuthContext streak increment."
+          "DailyTaskStore: All tasks completed, attempting to trigger AuthContext streak increment.",
         );
         try {
           const success = await triggerAuthStreakIncrement();
@@ -404,27 +404,27 @@ const useDailyTaskStore = create<DailyTaskState>((set, get) => ({
             set({ streakIncrementedToday: true });
             await AsyncStorage.setItem(
               STORAGE_KEY_STREAK_INCREMENTED_TODAY,
-              "true"
+              "true",
             );
             console.log(
-              "DailyTaskStore: AuthContext confirmed streak increment. Local streak status updated."
+              "DailyTaskStore: AuthContext confirmed streak increment. Local streak status updated.",
             );
             // Also mark the day as completed on the backend
             await markDayAsCompleted(new Date()); // Mark today as completed
           } else {
             console.log(
-              "DailyTaskStore: AuthContext reported failure to increment streak. Local status not updated."
+              "DailyTaskStore: AuthContext reported failure to increment streak. Local status not updated.",
             );
           }
         } catch (error) {
           console.error(
             "DailyTaskStore: Error calling triggerAuthStreakIncrement:",
-            error
+            error,
           );
         }
       } else {
         console.log(
-          "DailyTaskStore: triggerAuthStreakIncrement not set. Cannot update streak in AuthContext."
+          "DailyTaskStore: triggerAuthStreakIncrement not set. Cannot update streak in AuthContext.",
         );
       }
     }
@@ -434,7 +434,7 @@ const useDailyTaskStore = create<DailyTaskState>((set, get) => ({
     const { accessToken } = get();
     if (!accessToken) {
       console.log(
-        "DailyTaskStore: Cannot fetch completed days. Missing accessToken."
+        "DailyTaskStore: Cannot fetch completed days. Missing accessToken.",
       );
       set({ completedMonthlyDays: [], isLoadingMonthlyDays: false });
       return;
@@ -452,7 +452,7 @@ const useDailyTaskStore = create<DailyTaskState>((set, get) => ({
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -460,7 +460,7 @@ const useDailyTaskStore = create<DailyTaskState>((set, get) => ({
         console.error(
           "Failed to fetch completed days:",
           response.status,
-          errorData
+          errorData,
         );
         throw new Error(errorData.message || "Failed to fetch completed days");
       }
@@ -471,7 +471,7 @@ const useDailyTaskStore = create<DailyTaskState>((set, get) => ({
       });
       console.log(
         `Fetched completed days for ${monthString}:`,
-        data.completedDayNumbers
+        data.completedDayNumbers,
       );
     } catch (error) {
       console.error("Error in fetchCompletedDaysForMonth:", error);
@@ -483,7 +483,7 @@ const useDailyTaskStore = create<DailyTaskState>((set, get) => ({
     const { accessToken } = get();
     if (!accessToken) {
       console.log(
-        "DailyTaskStore: Cannot mark day as completed. Missing accessToken."
+        "DailyTaskStore: Cannot mark day as completed. Missing accessToken.",
       );
       return;
     }
@@ -504,7 +504,7 @@ const useDailyTaskStore = create<DailyTaskState>((set, get) => ({
         console.error(
           "Failed to mark day as completed:",
           response.status,
-          errorData
+          errorData,
         );
         throw new Error(errorData.message || "Failed to mark day as completed");
       }
@@ -518,7 +518,7 @@ const useDailyTaskStore = create<DailyTaskState>((set, get) => ({
       ) {
         await get().fetchCompletedDaysForMonth(
           today.getFullYear(),
-          today.getMonth() + 1
+          today.getMonth() + 1,
         );
       }
     } catch (error) {

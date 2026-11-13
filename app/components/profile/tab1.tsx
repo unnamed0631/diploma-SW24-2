@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import moment from "moment";
 import { Icon } from "react-native-paper";
@@ -7,19 +7,18 @@ import { ThemeText } from "@/components";
 
 const HorizontalDateSelector = () => {
   const { theme } = useAppTheme();
-  const [dates, setDates] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState(
-    moment().format("YYYY-MM-DD")
-  );
-
-  useEffect(() => {
-    const tempDates = [];
+  const [dates] = useState<string[]>(() => {
     const today = moment();
-    for (let i = -3; i <= 3; i++) {
-      tempDates.push(today.clone().add(i, "days").format("YYYY-MM-DD"));
-    }
-    setDates(tempDates);
-  }, []);
+    return Array.from({ length: 7 }, (_, i) =>
+      today
+        .clone()
+        .add(i - 3, "days")
+        .format("YYYY-MM-DD"),
+    );
+  });
+  const [selectedDate, setSelectedDate] = useState(
+    moment().format("YYYY-MM-DD"),
+  );
 
   const handleSelectDate = (date: string) => {
     setSelectedDate(date);

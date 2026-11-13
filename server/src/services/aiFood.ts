@@ -1,11 +1,9 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import puppeteer, { Browser, Page } from "puppeteer";
 import { IUser } from "@/models/user";
-import { config } from "dotenv";
 import { IDailyGoal } from "@/models/dailyGoal";
-config();
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 type ImageSource = string | null;
 
@@ -29,7 +27,7 @@ async function scrapeFoodiesfeed(page: Page, foodName: string) {
       }, primarySelector);
     } catch (e) {
       console.log(
-        `Primary selector ${primarySelector} not found or timeout for ${foodName}.`
+        `Primary selector ${primarySelector} not found or timeout for ${foodName}.`,
       );
     }
 
@@ -43,7 +41,7 @@ async function scrapeFoodiesfeed(page: Page, foodName: string) {
         }, fallbackSelector);
       } catch (e) {
         console.log(
-          `Fallback selector ${fallbackSelector} not found or timeout for ${foodName}.`
+          `Fallback selector ${fallbackSelector} not found or timeout for ${foodName}.`,
         );
       }
     }
@@ -55,7 +53,7 @@ async function scrapeFoodiesfeed(page: Page, foodName: string) {
   } catch (error: any) {
     console.error(
       `Error scraping Foodiesfeed for ${foodName} on page:`,
-      error.message
+      error.message,
     );
     return null;
   }
@@ -78,7 +76,6 @@ const genFoodPlan = async (user: IUser, goal?: IDailyGoal | null) => {
       ],
     });
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = `Generate varied and creative food recommendations for USER for breakfast, lunch, dinner, and a snack, aiming for different suggestions each time this is run.
     USER's weight is ${user.weight}kg, height is ${user.height}cm, gender is ${
       user.gender
@@ -103,34 +100,37 @@ const genFoodPlan = async (user: IUser, goal?: IDailyGoal | null) => {
     "carbs": "XX",
     "calories": "XXX"
   },
-  "lunch": { 
-    "food_name": "Food Name", 
-    "protein": "XX", 
-    "fat": "XX", 
-    "carbs": "XX", 
-    "calories": "XXX" 
+  "lunch": {
+    "food_name": "Food Name",
+    "protein": "XX",
+    "fat": "XX",
+    "carbs": "XX",
+    "calories": "XXX"
   },
-  "dinner": { 
-    "food_name": "Food Name", 
-    "protein": "XX", 
-    "fat": "XX", 
-    "carbs": "XX", 
-    "calories": "XXX" 
+  "dinner": {
+    "food_name": "Food Name",
+    "protein": "XX",
+    "fat": "XX",
+    "carbs": "XX",
+    "calories": "XXX"
   },
-  "snack": { 
-    "food_name": "Food Name", 
-    "protein": "XX", 
-    "fat": "XX", 
-    "carbs": "XX", 
-    "calories": "XXX" 
+  "snack": {
+    "food_name": "Food Name",
+    "protein": "XX",
+    "fat": "XX",
+    "carbs": "XX",
+    "calories": "XXX"
   }
 }
 
 The nutritional values (protein, fat, carbs, calorie) should be approximate for a standard serving.
 only return number values, no units for protein, fat, carbs, calories.`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const result = await genAI.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: prompt,
+    });
+    const text = result.text ?? "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error("Failed to parse AI response");
@@ -165,7 +165,7 @@ only return number values, no units for protein, fat, carbs, calories.`;
       } catch (err: any) {
         console.error(
           `Error processing ${mealType}:`,
-          err.message ? err.message : err
+          err.message ? err.message : err,
         );
         return {
           mealType: mealType,
@@ -194,7 +194,7 @@ only return number values, no units for protein, fat, carbs, calories.`;
   } catch (error: any) {
     console.error(
       "Error in genFoodPlan function:",
-      error.message ? error.message : error
+      error.message ? error.message : error,
     );
     return null;
   } finally {

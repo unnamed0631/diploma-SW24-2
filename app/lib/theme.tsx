@@ -1,10 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColorScheme, View } from "react-native";
-import {
-  useColorScheme as useNativeColorScheme,
-  colorScheme,
-} from "nativewind";
+import { colorScheme } from "nativewind";
 
 const THEME_KEY = "app-theme";
 

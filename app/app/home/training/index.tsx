@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useContext } from "react";
 import {
   View,
   Text,
@@ -26,9 +26,12 @@ import WorkoutDetailModal from "@/components/WorkoutModal";
 import { ScrollView } from "react-native-gesture-handler";
 
 export default function Training() {
-  const [dates, setDates] = useState<Moment[]>([]);
+  const [dates] = useState<Moment[]>(() => {
+    const today = moment();
+    return Array.from({ length: 7 }, (_, i) => today.clone().add(i, "days"));
+  });
   const [selectedDate, setSelectedDate] = useState(
-    moment().format("YYYY-MM-DD")
+    moment().format("YYYY-MM-DD"),
   );
   const router = useRouter();
   const { t } = useTranslation();
@@ -39,15 +42,6 @@ export default function Training() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<any | null>(null);
-
-  useEffect(() => {
-    const today = moment();
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      days.push(today.clone().add(i, "days"));
-    }
-    setDates(days);
-  }, []);
 
   const handleSelectDate = (date: Moment) => {
     setSelectedDate(date.format("YYYY-MM-DD"));
@@ -81,12 +75,12 @@ export default function Training() {
         <View className="p-6 flex-1">
           <Image
             source={require("@/assets/img/lightEffect.jpg")}
-            style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}
+            style={[StyleSheet.absoluteFill, { zIndex: 0 }]}
             contentFit="fill"
           />
           <View
             style={[
-              StyleSheet.absoluteFillObject,
+              StyleSheet.absoluteFill,
               { backgroundColor: isDark ? "#00000000" : "#ffffff00" },
             ]}
           />
@@ -187,7 +181,7 @@ export default function Training() {
 
             {workouts && workouts.length > 0 && (
               <View className="mt-6 mb-6">
-                <Text className="text-2xl text-white dark:text-black font-bold text-black dark:text-white mb-4">
+                <Text className="text-2xl font-bold text-black mb-4">
                   Your Daily Workouts
                 </Text>
                 <FlatList

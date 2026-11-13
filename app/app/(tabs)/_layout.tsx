@@ -4,10 +4,8 @@ import { Tabs } from "expo-router";
 import { AuthContext } from "@/context/auth";
 import { useContext, useEffect } from "react";
 import useDailyTaskStore from "@/stores/dailyTaskStore";
-import { useTranslation } from "@/lib/language";
 
 export default function TabLayout() {
-  const { t } = useTranslation();
   const { theme } = useAppTheme();
 
   const { setAuthDetails } = useDailyTaskStore();
@@ -32,7 +30,6 @@ export default function TabLayout() {
             backgroundColor: theme === "light" ? "white" : "#111827",
           },
         }}
-        initialRouteName="index"
       >
         <Tabs.Screen
           name="index"

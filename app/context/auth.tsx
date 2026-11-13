@@ -21,33 +21,56 @@ import { tokenCache } from "@/utils/cache";
 import { BASE_URL, API_URL } from "@/utils/constants";
 import { handleAppleAuthError } from "@/utils/handleAppleError";
 import { randomUUID } from "expo-crypto";
-import { Platform } from "react-native";
+
 import { useStatsStore } from "@/stores/statsStore";
 
-export const AuthContext = createContext({
-  user: null as User | null,
-  loggedIn: false,
-  loading: true,
-  accessToken: null as string | null,
-  login: async (username: string, password: string) => {},
-  loginWithGoogle: async () => {},
-  logout: async () => {},
-  register: async (registerForm: registerFormType) => {},
-  signInWithApple: () => {},
-  signInWithAppleWebBrowser: () => Promise.resolve(),
-  isLoading: true,
-  error: null as AuthError | null,
-  needsRegistration: { visible: false, data: null },
+interface AuthContextType {
+  user: User | null;
+  loggedIn: boolean;
+  loading: boolean;
+  accessToken: string | null;
+  login: (username: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
+  logout: () => Promise<void>;
+  register: (registerForm: registerFormType) => Promise<void>;
+  signInWithApple: () => void;
+  signInWithAppleWebBrowser: () => Promise<void>;
+  isLoading: boolean;
+  error: AuthError | null;
+  needsRegistration: { visible: boolean; data: any };
   setNeedsRegistration: (needsRegistration: {
     visible: boolean;
     data: any;
-  }) => {},
-  update: async (user: Partial<User>): Promise<boolean> => false,
+  }) => void;
+  update: (user: Partial<User>) => Promise<boolean>;
+  isUpdating: boolean;
+  getFoodImage: (image: string) => Promise<FoodImage | null>;
+  foodImageLoading: boolean;
+  workouts: any[];
+  incrementStreak: () => Promise<boolean>;
+}
+
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loggedIn: false,
+  loading: true,
+  accessToken: null,
+  login: async () => {},
+  loginWithGoogle: async () => {},
+  logout: async () => {},
+  register: async () => {},
+  signInWithApple: () => {},
+  signInWithAppleWebBrowser: () => Promise.resolve(),
+  isLoading: true,
+  error: null,
+  needsRegistration: { visible: false, data: null },
+  setNeedsRegistration: () => {},
+  update: async () => false,
   isUpdating: false,
-  getFoodImage: async (image: string): Promise<FoodImage | null> => null,
+  getFoodImage: async () => null,
   foodImageLoading: false,
-  workouts: [] as any[],
-  incrementStreak: async (): Promise<boolean> => false,
+  workouts: [],
+  incrementStreak: async () => false,
 });
 
 const config: AuthRequestConfig = {
@@ -72,8 +95,6 @@ const appleDiscovery: DiscoveryDocument = {
   tokenEndpoint: `${BASE_URL}/api/auth/apple/token`,
 };
 
-const isWeb = Platform.OS === "web";
-
 WebBrowser.maybeCompleteAuthSession();
 
 export function AuthProvider({ children }: PropsWithChildren) {
@@ -92,9 +113,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [request, response, promptAsync] = useAuthRequest(config, discovery);
   const refreshInProgressRef = useRef(false);
+  const didCheckLoginRef = useRef(false);
   const [appleRequest, appleResponse, promptAppleAsync] = useAuthRequest(
     appleConfig,
-    appleDiscovery
+    appleDiscovery,
   );
   const { setField } = useStatsStore();
 
@@ -102,7 +124,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     (val: { visible: boolean; data: any }) => {
       _setNeedsRegistration(val);
     },
-    []
+    [],
   );
 
   const loadGoals = useCallback(
@@ -116,29 +138,37 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setField("sleepGoal", goals.sleepGoal);
       setField("rdcGoal", goals.rdcGoal);
     },
-    [setField]
+    [setField],
   );
 
   const signOut = useCallback(async () => {
     _setNeedsRegistration({ visible: false, data: null });
-    if (isWeb) {
-      try {
-        await fetch(`${API_URL}/auth/logout`, {
-          method: "POST",
-          credentials: "include",
-        });
-      } catch (error) {
-        console.error("Error during web logout:", error);
-      }
-    } else {
-      await tokenCache?.deleteToken("accessToken");
-      await tokenCache?.deleteToken("refreshToken");
+    try {
+      const storedRefreshToken =
+        refreshToken ?? (await tokenCache?.getToken("refreshToken"));
+      await fetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(storedRefreshToken
+            ? { Authorization: `Bearer ${storedRefreshToken}` }
+            : {}),
+        },
+        body: JSON.stringify(
+          storedRefreshToken ? { refreshToken: storedRefreshToken } : {},
+        ),
+      });
+    } catch (error) {
+      console.error("Error during logout:", error);
     }
+    await tokenCache?.deleteToken("accessToken");
+    await tokenCache?.deleteToken("refreshToken");
     setUser(null);
     setAccessToken(null);
     setRefreshToken(null);
     setLoggedIn(false);
-  }, []);
+  }, [refreshToken]);
 
   const refreshAccessToken = useCallback(
     async (tokenToUse?: string) => {
@@ -192,7 +222,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         refreshInProgressRef.current = false;
       }
     },
-    [refreshToken, signOut, loadGoals]
+    [refreshToken, signOut, loadGoals],
   );
 
   const handleNativeTokens = useCallback(
@@ -211,7 +241,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setLoggedIn(true);
       }
     },
-    []
+    [],
   );
 
   const handleResponse = useCallback(async () => {
@@ -232,7 +262,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (!serverResponse.ok) {
           console.error(
             "Error handling auth response (google):",
-            await serverResponse.json()
+            await serverResponse.json(),
           );
           return;
         }
@@ -305,7 +335,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setIsLoading(false);
       }
     },
-    [handleNativeTokens, loadGoals]
+    [handleNativeTokens, loadGoals],
   );
 
   const loginUser = useCallback(
@@ -333,7 +363,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setIsLoading(false);
       }
     },
-    [handleNativeTokens, loadGoals]
+    [handleNativeTokens, loadGoals],
   );
 
   const signInWithAppleWebBrowser = useCallback(async (): Promise<void> => {
@@ -370,12 +400,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
             familyName: credential.fullName?.familyName,
             email: credential.email,
           }),
-        }
+        },
       );
       if (!appleAuthResponse.ok) {
         console.error(
           "Apple native auth failed:",
-          await appleAuthResponse.json()
+          await appleAuthResponse.json(),
         );
         throw new Error("Apple native authentication failed");
       }
@@ -442,7 +472,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setIsUpdating(false);
       }
     },
-    [accessToken, loadGoals]
+    [accessToken, loadGoals],
   );
 
   const getDailyFood = useCallback(async (): Promise<void> => {
@@ -471,7 +501,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const data = await res.json();
     await tokenCache?.saveToken(
       "dailyFoods",
-      JSON.stringify({ ...data, timestamp: new Date().toISOString() })
+      JSON.stringify({ ...data, timestamp: new Date().toISOString() }),
     );
     setField("dailyFoods", data);
   }, [accessToken, setField]);
@@ -498,7 +528,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           console.error(
             "Error getting food image:",
             res.status,
-            await res.json()
+            await res.json(),
           );
           return null;
         }
@@ -510,7 +540,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setFoodImageLoading(false);
       }
     },
-    [accessToken]
+    [accessToken],
   );
 
   const getWorkouts = useCallback(async (): Promise<void> => {
@@ -542,7 +572,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setWorkouts(data);
       await tokenCache?.saveToken(
         "workouts",
-        JSON.stringify({ data, timestamp: new Date().toISOString() })
+        JSON.stringify({ data, timestamp: new Date().toISOString() }),
       );
     } catch (e) {
       console.error("Error getting workouts:", e);
@@ -565,7 +595,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       console.log(
         `AuthProvider: Streak updated. New streak: ${newStreak}, New Highest: ${
           updatePayload.highestStreak || currentHighestStreak
-        }`
+        }`,
       );
     } else {
       console.log(`AuthProvider: Failed to update streak.`);
@@ -575,6 +605,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   // login
   useEffect(() => {
+    if (didCheckLoginRef.current) return;
+    didCheckLoginRef.current = true;
+
     const checkLogin = async () => {
       setIsLoading(true);
       try {
@@ -592,7 +625,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           } catch (jwtError) {
             console.error(
               "AuthContext: Error decoding stored access token:",
-              jwtError
+              jwtError,
             );
             isAccessTokenValid = false;
             // Potentially delete invalid token from cache here
@@ -602,14 +635,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
         if (isAccessTokenValid && decodedAccessToken && storedAccessToken) {
           console.log(
-            "AuthContext: Valid access token found in cache. Using it."
+            "AuthContext: Valid access token found in cache. Using it.",
           );
           setAccessToken(storedAccessToken);
           setUser(decodedAccessToken as User);
           setLoggedIn(true);
           if ((decodedAccessToken as User).dailyGoals) {
             await loadGoals(
-              (decodedAccessToken as User).dailyGoals as DailyGoals
+              (decodedAccessToken as User).dailyGoals as DailyGoals,
             );
           }
           const rt = await tokenCache?.getToken("refreshToken");
@@ -618,18 +651,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
           }
         } else {
           console.log(
-            "AuthContext: No valid access token. Attempting refresh if refresh token exists."
+            "AuthContext: No valid access token. Attempting refresh if refresh token exists.",
           );
           const rt = await tokenCache?.getToken("refreshToken");
           if (rt) {
             console.log(
-              "AuthContext: Found refresh token. Attempting refresh."
+              "AuthContext: Found refresh token. Attempting refresh.",
             );
             setRefreshToken(rt); // Set state before calling, as refreshAccessToken might be memoized based on it
             await refreshAccessToken(rt); // This will set user/accessToken if successful or sign out
           } else {
             console.log(
-              "AuthContext: No refresh token found. User needs to log in."
+              "AuthContext: No refresh token found. User needs to log in.",
             );
             setUser(null);
             setAccessToken(null);
@@ -650,21 +683,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     };
     checkLogin();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadGoals, refreshAccessToken]);
 
   useEffect(() => {
-    if (user && loggedIn) {
-      getDailyFood();
-      getWorkouts();
-      console.log("getting daily stuff");
-    }
+    if (!user || !loggedIn) return;
+    void (async () => {
+      await Promise.all([getDailyFood(), getWorkouts()]);
+    })();
   }, [user, loggedIn, getDailyFood, getWorkouts]);
 
   useEffect(() => {
-    if (response) {
-      handleResponse();
-    }
+    if (!response) return;
+    void (async () => {
+      await handleResponse();
+    })();
   }, [response, handleResponse]);
 
   useEffect(() => {
@@ -675,14 +707,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   // interval to refresh user 10min
   useEffect(() => {
-    let intervalId: number;
+    let intervalId: ReturnType<typeof setInterval>;
     if (loggedIn && refreshToken) {
-      intervalId = setInterval(() => {
-        console.log("Attempting periodic token refresh...");
-        refreshAccessToken(refreshToken).catch((e) =>
-          console.error("Periodic refresh failed", e)
-        );
-      }, 1000 * 60 * 10);
+      intervalId = setInterval(
+        () => {
+          console.log("Attempting periodic token refresh...");
+          refreshAccessToken(refreshToken).catch((e) =>
+            console.error("Periodic refresh failed", e),
+          );
+        },
+        1000 * 60 * 10,
+      );
     }
     return () => clearInterval(intervalId);
   }, [loggedIn, refreshToken, refreshAccessToken]);

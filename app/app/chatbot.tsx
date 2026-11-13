@@ -8,7 +8,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from "react-native";
-import React, { useState, useEffect, use } from "react";
+import React, { useMemo, useState, useEffect, use } from "react";
 import { useAppTheme } from "@/lib/theme";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -22,6 +22,20 @@ import { StatusBar } from "expo-status-bar";
 import ListFooterElement from "@/components/chat/ListFooterElement";
 import { AuthContext } from "@/context/auth";
 // import CameraTracking from "@/components/cameraTracking";
+
+const createInitialMessage = (): Message => ({
+  id: "init-1",
+  content: "Hello! I'm your AI assistant.",
+  role: "model",
+  timestamp: new Date(),
+});
+
+const convertStoreMessages = (storeMessages: Message[]): Message[] =>
+  storeMessages.length > 0
+    ? (storeMessages
+        .filter((msg) => msg.role !== "system")
+        .reverse() as Message[])
+    : [createInitialMessage()];
 
 const LoadingIndicator = () => {
   const { theme } = useAppTheme();
@@ -40,10 +54,12 @@ const LoadingIndicator = () => {
 
 export default function ChatScreen() {
   const { user } = use(AuthContext);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() =>
+    convertStoreMessages(useChatStore.getState().messages),
+  );
   const [inputText, setInputText] = useState("");
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
-    null
+    null,
   );
   const { theme } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -53,7 +69,6 @@ export default function ChatScreen() {
     isSending,
     isLoadingHistory,
     error,
-    messages: storeMessages,
     clearError,
   } = useChatStore();
 
@@ -64,46 +79,24 @@ export default function ChatScreen() {
     };
   }, [clearError]);
 
+  // Keep messages in sync when history loads or the chat is cleared.
+  useEffect(() => {
+    let previousMessages = useChatStore.getState().messages;
+    return useChatStore.subscribe((state) => {
+      if (state.messages === previousMessages) return;
+      previousMessages = state.messages;
+      setMessages(convertStoreMessages(state.messages));
+    });
+  }, []);
+
   useEffect(() => {
     useChatStore.getState().getConversationHistory();
   }, []);
 
-  // GET HISTORY
-  useEffect(() => {
-    if (storeMessages?.length > 0) {
-      const convertedMessages = storeMessages?.filter(
-        (msg) => msg.role !== "system"
-      );
-      setMessages(convertedMessages.reverse() as Message[]);
-    } else {
-      setMessages([
-        {
-          id: "init-1",
-          content: "Hello! I'm your AI assistant.",
-          role: "model",
-          timestamp: new Date(),
-        },
-      ]);
-    }
-  }, [storeMessages]);
-
-  // INITIAL MESSAGE
-  useEffect(() => {
-    if (messages.length === 0) {
-      setMessages([
-        {
-          id: "init-1",
-          content: "Hello! I'm your AI assistant.",
-          role: "model",
-          timestamp: new Date(),
-        },
-      ]);
-    }
-  }, [messages]);
-
   // SEND MESSAGE
   const handleSend = async () => {
     if (!inputText.trim()) return;
+    clearError();
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -130,8 +123,8 @@ export default function ChatScreen() {
           prev.map((msg) =>
             msg.id === botMessageId
               ? { ...msg, content: msg.content + chunk }
-              : msg
-          )
+              : msg,
+          ),
         );
       });
     } catch (err) {
@@ -140,41 +133,35 @@ export default function ChatScreen() {
         prevMsgs.map((msg) =>
           msg.id === botMessageId
             ? { ...msg, content: "[Error connecting to AI. Please try again.]" }
-            : msg
-        )
+            : msg,
+        ),
       );
     } finally {
       setStreamingMessageId(null);
     }
   };
-  // ERROR HANDLING
-  useEffect(() => {
-    if (error && messages.length > 0) {
-      const currentStreamingMessage = messages.find(
-        (m) => m.id === streamingMessageId
+  // ERROR HANDLING (derived, so the message list is never mutated in an effect)
+  const displayMessages = useMemo(() => {
+    if (!error || messages.length === 0) return messages;
+
+    const currentStreamingMessage = messages.find(
+      (m) => m.id === streamingMessageId,
+    );
+    if (currentStreamingMessage?.role === "model") {
+      return messages.map((msg) =>
+        msg.id === streamingMessageId ? { ...msg, content: error } : msg,
       );
-      if (currentStreamingMessage && currentStreamingMessage.role === "model") {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === streamingMessageId ? { ...msg, content: error } : msg
-          )
-        );
-      } else if (
-        error &&
-        !streamingMessageId &&
-        !messages.some((m) => m.id === "error-1")
-      ) {
-        setMessages((prev) => [
-          {
-            id: "error-1",
-            content: error,
-            role: "model",
-            timestamp: new Date(),
-          },
-          ...prev,
-        ]);
-      }
     }
+    if (!streamingMessageId && !messages.some((m) => m.id === "error-1")) {
+      const errorMessage: Message = {
+        id: "error-1",
+        content: error,
+        role: "model",
+        timestamp: messages[0].timestamp,
+      };
+      return [errorMessage, ...messages];
+    }
+    return messages;
   }, [error, messages, streamingMessageId]);
 
   // CLEAR CHAT
@@ -199,7 +186,7 @@ export default function ChatScreen() {
       >
         <FlatList
           inverted={true}
-          data={messages}
+          data={displayMessages}
           ListFooterComponent={<ListFooterElement />}
           renderItem={({ item }) => (
             <MessageBubble
@@ -223,7 +210,7 @@ export default function ChatScreen() {
           ListHeaderComponent={
             isLoadingHistory && messages.length <= 1 ? (
               <LoadingIndicator />
-            ) : null
+            ) : undefined
           }
         />
 
@@ -246,8 +233,8 @@ export default function ChatScreen() {
                     ? "#4B5563"
                     : "#D1D5DB"
                   : theme === "dark"
-                  ? "#9CA3AF"
-                  : "#6B7280"
+                    ? "#9CA3AF"
+                    : "#6B7280"
               }
             />
           </Pressable>

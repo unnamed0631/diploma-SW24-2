@@ -70,7 +70,9 @@ export const useBlogStore = create<BlogState>((set, get) => {
       bookmarkedPostsArray = [];
     }
   };
-  init();
+  if (typeof window !== "undefined") {
+    init();
+  }
 
   const sendLikeToServer = async (postId: string) => {
     try {
@@ -102,7 +104,7 @@ export const useBlogStore = create<BlogState>((set, get) => {
 
       if (bookmarkedPostsArray.includes(postId)) {
         bookmarkedPostsArray = bookmarkedPostsArray.filter(
-          (id: string) => id !== postId
+          (id: string) => id !== postId,
         );
       } else {
         bookmarkedPostsArray.push(postId);
@@ -110,7 +112,7 @@ export const useBlogStore = create<BlogState>((set, get) => {
 
       await AsyncStorage.setItem(
         "bookmarkedPosts",
-        JSON.stringify(bookmarkedPostsArray)
+        JSON.stringify(bookmarkedPostsArray),
       );
 
       console.log("bookmarkedPostsArray", bookmarkedPostsArray);
@@ -119,7 +121,7 @@ export const useBlogStore = create<BlogState>((set, get) => {
         posts: state.posts.map((post) =>
           post._id === postId
             ? { ...post, isBookmarked: !post.isBookmarked }
-            : post
+            : post,
         ),
       }));
     } catch (error) {
@@ -140,13 +142,13 @@ export const useBlogStore = create<BlogState>((set, get) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {
         console.error(
           "Failed to update comment like status:",
-          await response.json()
+          await response.json(),
         );
         return;
       }
@@ -292,7 +294,7 @@ export const useBlogStore = create<BlogState>((set, get) => {
           posts: state.posts.map((post) =>
             post._id === postId
               ? { ...post, comments: [...post.comments, newComment] }
-              : post
+              : post,
           ),
         }));
       } catch (error) {

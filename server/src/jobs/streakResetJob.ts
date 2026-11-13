@@ -13,7 +13,7 @@ const checkAndResetStreaks = async () => {
       timeZone: TIMEZONE,
       dateStyle: "full",
       timeStyle: "long",
-    }).format(now)}`
+    }).format(now)}`,
   );
 
   try {
@@ -26,7 +26,7 @@ const checkAndResetStreaks = async () => {
     const endOfYesterday = endOfDay(yesterday);
 
     console.log(
-      `Checking completions for: ${yesterday.toISOString().slice(0, 10)}`
+      `Checking completions for: ${yesterday.toISOString().slice(0, 10)}`,
     );
 
     for (const user of usersWithStreaks) {
@@ -47,15 +47,27 @@ const checkAndResetStreaks = async () => {
   }
 };
 
+let scheduledTask: ReturnType<typeof cron.schedule> | null = null;
+
 // Schedule the job to run daily at 00:05 Asia/Ulaanbaatar time
-const scheduleStreakResetJob = () => {
-  cron.schedule("5 0 * * *", checkAndResetStreaks, {
+const scheduleStreakResetJob = (): ReturnType<typeof cron.schedule> => {
+  scheduledTask = cron.schedule("5 0 * * *", checkAndResetStreaks, {
     timezone: TIMEZONE,
   });
 
   console.log(
-    `🕐 Streak reset cron job scheduled daily at 00:05 (${TIMEZONE})`
+    `🕐 Streak reset cron job scheduled daily at 00:05 (${TIMEZONE})`,
   );
+
+  return scheduledTask;
 };
 
-export { scheduleStreakResetJob, checkAndResetStreaks }; //mby for testing
+const stopStreakResetJob = () => {
+  if (scheduledTask) {
+    scheduledTask.stop();
+    scheduledTask = null;
+    console.log("🛑 Streak reset cron job stopped");
+  }
+};
+
+export { scheduleStreakResetJob, stopStreakResetJob, checkAndResetStreaks }; //mby for testing

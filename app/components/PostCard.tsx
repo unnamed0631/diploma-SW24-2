@@ -22,15 +22,9 @@ export default function PostCard({ post }: PostCardProps) {
   const { user } = use(AuthContext);
   const router = useRouter();
   const { toggleLike, toggleBookmark } = useBlogStore();
-  const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes.length);
-
-  useEffect(() => {
-    if (post) {
-      setIsLiked(post.likes?.includes(user?._id ?? ""));
-    }
-  }, [post, user]);
+  const isLiked = post.likes?.includes(user?._id ?? "") ?? false;
+  const likeCount = post.likes?.length ?? 0;
 
   useEffect(() => {
     const getBookMarks = async () => {
@@ -38,7 +32,7 @@ export default function PostCard({ post }: PostCardProps) {
       return bookMarks?.includes(post._id);
     };
     getBookMarks().then((isBookmarked) =>
-      setIsBookmarked(Boolean(isBookmarked))
+      setIsBookmarked(Boolean(isBookmarked)),
     );
   }, [post._id]);
 
@@ -49,13 +43,13 @@ export default function PostCard({ post }: PostCardProps) {
   }));
 
   const handleLike = () => {
-    scale.value = withSequence(
-      withTiming(1.2, { duration: 150 }),
-      withTiming(1, { duration: 150 })
+    scale.set(
+      withSequence(
+        withTiming(1.2, { duration: 150 }),
+        withTiming(1, { duration: 150 }),
+      ),
     );
     toggleLike(post._id);
-    setIsLiked(!isLiked);
-    setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
   };
 
   const handleBookmark = () => {

@@ -6,13 +6,18 @@ import { Stack } from "expo-router/stack";
 import "@/lib/global.css";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useStatsStore } from "@/stores/statsStore";
 import useDailyTaskStore from "@/stores/dailyTaskStore";
 import { useTranslation } from "@/lib/language";
+import { loadSkia } from "@/lib/loadSkia";
 // import * as NavigationBar from "expo-navigation-bar";
 SplashScreen.preventAutoHideAsync();
+
+export const unstable_settings = {
+  anchor: "(tabs)",
+};
 
 const RootLayout = () => {
   const { theme } = useAppTheme();
@@ -20,6 +25,7 @@ const RootLayout = () => {
   const [loaded, error] = useFonts({
     Quicksand: require("../assets/fonts/Quicksand-Variable.ttf"),
   });
+  const [skiaReady, setSkiaReady] = useState(Platform.OS !== "web");
 
   // useEffect(() => {
   //   const setNavigationBar = async () => {
@@ -36,12 +42,22 @@ const RootLayout = () => {
   }, [t]);
 
   useEffect(() => {
-    if (loaded || error) {
+    if (Platform.OS !== "web") return;
+
+    loadSkia()
+      .catch((skiaError) =>
+        console.error("Failed to load Skia on web:", skiaError),
+      )
+      .finally(() => setSkiaReady(true));
+  }, []);
+
+  useEffect(() => {
+    if ((loaded || error) && skiaReady) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, error]);
+  }, [loaded, error, skiaReady]);
 
-  if (!loaded) {
+  if (!loaded || !skiaReady) {
     return null;
   }
 
@@ -66,7 +82,6 @@ const RootLayout = () => {
                 presentation: Platform.OS === "ios" ? "modal" : "card",
                 animation: Platform.OS === "ios" ? "default" : "ios_from_right",
               }}
-              initialRouteName="(tabs)"
             >
               <Stack.Screen
                 name="(tabs)"

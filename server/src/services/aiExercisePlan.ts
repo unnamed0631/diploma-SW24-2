@@ -1,14 +1,12 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { IUser } from "@/models/user";
-import { config } from "dotenv";
 import fs from "fs";
-config();
 
 const exercises: IExercise[] = JSON.parse(
-  fs.readFileSync("./src/services/exercises.json", "utf8")
+  fs.readFileSync("./src/services/exercises.json", "utf8"),
 );
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 interface IExercise {
   id: number;
@@ -26,8 +24,6 @@ interface IExercise {
 const genExercisePlan = async (user: IUser) => {
   console.time("genExercisePlan");
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
     const exerciseNames = exercises.map((ex) => ex.name).join(", ");
     console.log(exerciseNames);
 
@@ -70,14 +66,17 @@ const genExercisePlan = async (user: IUser) => {
   // ... more exercises
 ]`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const result = await genAI.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: prompt,
+    });
+    const text = result.text ?? "";
 
     const jsonMatch = text.match(/\[[\s\S]*?\]/);
     if (!jsonMatch) {
       console.error("Raw AI Response:", text);
       throw new Error(
-        "Failed to parse AI response into a JSON array. The response might not be in the expected array format."
+        "Failed to parse AI response into a JSON array. The response might not be in the expected array format.",
       );
     }
 
@@ -94,11 +93,11 @@ const genExercisePlan = async (user: IUser) => {
     const validatedPlan = plan
       .map((aiExercise) => {
         const foundExercise = exercises.find(
-          (ex) => ex.name.toLowerCase() === aiExercise.name.toLowerCase()
+          (ex) => ex.name.toLowerCase() === aiExercise.name.toLowerCase(),
         );
         if (!foundExercise) {
           console.log(
-            `AI recommended exercise "${aiExercise.name}" not found in the local exercises.json. Skipping.`
+            `AI recommended exercise "${aiExercise.name}" not found in the local exercises.json. Skipping.`,
           );
           return null;
         }
@@ -111,12 +110,12 @@ const genExercisePlan = async (user: IUser) => {
 
     if (validatedPlan.length === 0 && plan.length > 0) {
       throw new Error(
-        "AI generated a plan, but none of the exercises could be validated against the local list."
+        "AI generated a plan, but none of the exercises could be validated against the local list.",
       );
     }
     if (validatedPlan.length === 0) {
       throw new Error(
-        "AI failed to generate any valid exercises for the plan or no exercises were returned."
+        "AI failed to generate any valid exercises for the plan or no exercises were returned.",
       );
     }
 
@@ -124,7 +123,7 @@ const genExercisePlan = async (user: IUser) => {
   } catch (error: any) {
     console.error(
       "Error generating exercise plan:",
-      error.message ? error.message : error
+      error.message ? error.message : error,
     );
     return null;
   } finally {

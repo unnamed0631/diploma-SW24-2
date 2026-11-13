@@ -15,7 +15,7 @@ export default function Start() {
         <Image
           source={require("@/assets/beetch.png")}
           style={[
-            StyleSheet.absoluteFillObject,
+            StyleSheet.absoluteFill,
             { width: "100%", height: "100%", borderRadius: 20 },
           ]}
           cachePolicy={"memory-disk"}

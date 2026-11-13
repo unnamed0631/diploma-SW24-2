@@ -1,15 +1,15 @@
-import { model, Schema, ObjectId } from "mongoose";
+import { model, Schema, Types } from "mongoose";
 
 export interface IPost {
-  _id: ObjectId;
+  _id: Types.ObjectId;
   image?: string;
   title: string;
   content: string;
   description: string;
-  author: ObjectId;
-  likes: ObjectId[];
+  author: Types.ObjectId;
+  likes: Types.ObjectId[];
   views: number;
-  comments: ObjectId[];
+  comments: Types.ObjectId[];
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -60,7 +60,7 @@ const postSchema = new Schema(
   {
     timestamps: true,
     indexes: [{ fields: ["author"] }],
-  }
+  },
 );
 
 const Post = model<IPost>("Post", postSchema);

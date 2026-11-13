@@ -2,14 +2,13 @@ import { ThemeText } from "@/components";
 import { View, Text, Pressable, Animated } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { format, startOfMonth, endOfMonth, getDay, getDate } from "date-fns";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 const weekdayShort = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function MiniCalendar({
   currentDate,
   completedDays,
-  onToggleComplete,
   onPrevMonth,
   onNextMonth,
   isNextDisabled,
@@ -36,54 +35,7 @@ export default function MiniCalendar({
     today.getFullYear() === currentDate.getFullYear();
 
   const isCompleted = (date: number) => completedDays.includes(date);
-  const ArrowButton = ({
-    direction,
-    onPress,
-  }: {
-    direction: "left" | "right";
-    onPress: () => void;
-  }) => {
-    const scaleAnim = useRef(new Animated.Value(1)).current;
-    const [pressed, setPressed] = useState(false);
 
-    const handlePressIn = () => {
-      setPressed(true);
-      Animated.spring(scaleAnim, {
-        toValue: 0.85,
-        useNativeDriver: true,
-      }).start();
-    };
-
-    const handlePressOut = () => {
-      onPress();
-      setPressed(false);
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 3,
-        tension: 40,
-        useNativeDriver: true,
-      }).start();
-    };
-
-    return (
-      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-        <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut}>
-          <View
-            className={`${
-              pressed ? "bg-blue-700" : "bg-blue-500"
-            } rounded-full p-1`}
-          >
-            <ThemeText className="text-white dark:text-black">
-              <Feather
-                name={direction === "left" ? "chevron-left" : "chevron-right"}
-                size={22}
-              />
-            </ThemeText>
-          </View>
-        </Pressable>
-      </Animated.View>
-    );
-  };
   return (
     <View className="w-full border-2 border-gray-200 dark:border-gray-500 p-3 rounded-xl">
       {/* Header with month & nav */}
@@ -157,3 +109,52 @@ export default function MiniCalendar({
     </View>
   );
 }
+
+const ArrowButton = ({
+  direction,
+  onPress,
+}: {
+  direction: "left" | "right";
+  onPress: () => void;
+}) => {
+  const [scaleAnim] = useState(() => new Animated.Value(1));
+  const [pressed, setPressed] = useState(false);
+
+  const handlePressIn = () => {
+    setPressed(true);
+    Animated.spring(scaleAnim, {
+      toValue: 0.85,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    onPress();
+    setPressed(false);
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 3,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut}>
+        <View
+          className={`${
+            pressed ? "bg-blue-700" : "bg-blue-500"
+          } rounded-full p-1`}
+        >
+          <ThemeText className="text-white dark:text-black">
+            <Feather
+              name={direction === "left" ? "chevron-left" : "chevron-right"}
+              size={22}
+            />
+          </ThemeText>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+};

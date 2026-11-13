@@ -1,6 +1,6 @@
 import { useRegisterStore } from "@/stores/register";
 import { Text, View, TextInput, Pressable } from "react-native";
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import DropDownPicker from "react-native-dropdown-picker";
 import DateTimePicker, {
   DateTimePickerEvent,
@@ -13,7 +13,7 @@ import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react-native";
 export default function Step1() {
   const { setField } = useRegisterStore();
   // const { language } = useLanguage();
-  const { t, i18n } = useTranslation(); // New hook
+  const { t } = useTranslation(); // New hook
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(null);
   const [dob, setDob] = useState<Date | null>(null);
@@ -24,28 +24,17 @@ export default function Step1() {
   const [heightUnit, setHeightUnit] = useState("cm");
   const { theme } = useAppTheme();
 
-  // const genderChoices = languages[language].register.steps.step1.question1.choices;
-  const genderChoices = t("register.steps.step1.question1.choices", {
-    returnObjects: true,
-  }) as { [key: string]: string };
-
-  const [items, setItems] = useState<DropdownItem[]>([
-    { label: genderChoices["1"], value: "1" },
-    { label: genderChoices["2"], value: "2" },
-    { label: genderChoices["3"], value: "3" },
-  ]);
-
-  // Update items when language changes
-  useEffect(() => {
+  const items = useMemo<DropdownItem[]>(() => {
     const currentGenderChoices = t("register.steps.step1.question1.choices", {
       returnObjects: true,
     }) as { [key: string]: string };
-    setItems([
+
+    return [
       { label: currentGenderChoices["1"], value: "1" },
       { label: currentGenderChoices["2"], value: "2" },
       { label: currentGenderChoices["3"], value: "3" },
-    ]);
-  }, [i18n.language, t]); // Listen to i18n.language and t
+    ];
+  }, [t]);
 
   const handleGender = (value: string | null) => {
     if (value) {
@@ -116,7 +105,6 @@ export default function Step1() {
           items={items}
           setOpen={setOpen}
           setValue={setValue}
-          setItems={setItems}
           onChangeValue={handleGender}
           // placeholder={languages[language].register.steps.step1.question1.title}
           placeholder={t("register.steps.step1.question1.title")}

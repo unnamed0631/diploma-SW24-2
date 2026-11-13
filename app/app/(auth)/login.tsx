@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import type { TextInputInstance } from "react-native";
 import { useAppTheme } from "@/lib/theme";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
@@ -35,7 +36,7 @@ const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordHidden, setPasswordHidden] = useState(true);
-  const passwordRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
 
   const logIn = () => {
     login(username, password);

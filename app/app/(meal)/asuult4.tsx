@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useTranslation } from "@/lib/language";
 import moment, { Moment } from "moment";
@@ -10,19 +10,13 @@ import NavigationButtons from "@/components/meal/NavigationButtons";
 export default function Asuult4() {
   const { t } = useTranslation();
   const router = useRouter();
-  const [dates, setDates] = useState<Moment[]>([]);
-  const [selectedDate, setSelectedDate] = useState(
-    moment().format("YYYY-MM-DD")
-  );
-
-  useEffect(() => {
+  const [dates] = useState<Moment[]>(() => {
     const today = moment();
-    const days = [];
-    for (let i = 0; i < 14; i++) {
-      days.push(today.clone().add(i, "days"));
-    }
-    setDates(days);
-  }, []);
+    return Array.from({ length: 14 }, (_, i) => today.clone().add(i, "days"));
+  });
+  const [selectedDate, setSelectedDate] = useState(
+    moment().format("YYYY-MM-DD"),
+  );
 
   const handleSelectDate = (date: Moment) => {
     setSelectedDate(date.format("YYYY-MM-DD"));

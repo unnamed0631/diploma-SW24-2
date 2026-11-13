@@ -37,7 +37,9 @@ export default function Training() {
     const color = interpolateColor(
       pressed.value,
       [0, 1],
-      theme === "dark" ? ["#ffffff60", "#ffffff00"] : ["#00000040", "#00000030"]
+      theme === "dark"
+        ? ["#ffffff60", "#ffffff00"]
+        : ["#00000040", "#00000030"],
     );
     const boxShadow = `0px 0px ${blurRadius} 0px ${color}`;
     return {
@@ -59,7 +61,7 @@ export default function Training() {
       <View className="absolute top-0 w-full left-0 right-0 bottom-0 ">
         <Image
           source={require("@/assets/img/gradient.png")}
-          style={[StyleSheet.absoluteFillObject, { zIndex: -1 }]}
+          style={[StyleSheet.absoluteFill, { zIndex: -1 }]}
           contentFit="cover"
         />
       </View>

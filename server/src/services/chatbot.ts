@@ -1,20 +1,18 @@
-import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
+import { GoogleGenAI, type Content } from "@google/genai";
 import Chat, { IChat } from "@/models/chatbotHistory";
-import { config } from "dotenv";
 import { Response } from "express";
-config();
 
 export class ChatbotService {
-  private genAI: GoogleGenerativeAI;
-  private model: GenerativeModel;
+  private genAI: GoogleGenAI;
+  private model: string;
   private systemPrompt: string;
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY as string;
     if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
 
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    this.genAI = new GoogleGenAI({ apiKey });
+    this.model = "gemini-2.0-flash";
 
     this.systemPrompt = `You are a knowledgeable assistant focused entirely on fitness and health. Your purpose is to provide helpful, accurate information specifically related to fitness, exercise, nutrition, and overall wellness.
 
@@ -72,7 +70,7 @@ Please remain focused on fitness and health topics..`;
   async sendMessageStream(
     userId: string,
     message: string,
-    res: Response
+    res: Response,
   ): Promise<void> {
     try {
       let chat = await Chat.findOne({ userId });
@@ -101,28 +99,26 @@ Please remain focused on fitness and health topics..`;
 
       await chat.addMessage("user", message);
 
-      const chatSession = this.model.startChat({
-        history: [
-          {
-            role: "user",
-            parts: [{ text: this.systemPrompt }],
-          },
-          ...chat.messages.slice(1).map((msg) => ({
-            role: msg.role,
-            parts: [{ text: msg.content }],
-          })),
-        ],
-        generationConfig: {
+      const contents: Content[] = [
+        { role: "user", parts: [{ text: this.systemPrompt }] },
+        ...chat.messages.slice(1).map((msg): Content => ({
+          role: msg.role === "model" ? "model" : "user",
+          parts: [{ text: msg.content }],
+        })),
+      ];
+
+      const stream = await this.genAI.models.generateContentStream({
+        model: this.model,
+        contents,
+        config: {
           maxOutputTokens: 2048,
         },
       });
 
-      const resultStream = await chatSession.sendMessageStream(message);
-
       let aiMessage = "";
 
-      for await (const chunk of resultStream.stream) {
-        const text = chunk.text();
+      for await (const chunk of stream) {
+        const text = chunk.text ?? "";
         aiMessage += text;
         res.write(`data: ${JSON.stringify({ text })}\n\n`);
       }

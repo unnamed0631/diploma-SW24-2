@@ -6,7 +6,7 @@ import * as RegisterComponents from "@/components/register";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import StepProgressBar from "@/components/register/StepProgressBar";
-import PagerView from "react-native-pager-view";
+import PagerView, { type PagerViewRef } from "@expo/ui/community/pager-view";
 
 export default function Register() {
   const store = useRegisterStore();
@@ -15,7 +15,7 @@ export default function Register() {
   const [tab, setTab] = useState(0);
   const router = useRouter();
 
-  const scrollRef = useRef<PagerView>(null);
+  const scrollRef = useRef<PagerViewRef>(null);
 
   // Pre-define the data array to avoid recreating it on each render
   const steps = useMemo(
@@ -24,7 +24,7 @@ export default function Register() {
         key: component.name,
         component,
       })),
-    []
+    [],
   );
 
   const maxTabs = steps.length;
@@ -62,21 +62,19 @@ export default function Register() {
     if (process.env.NODE_ENV === "development") return false;
     switch (tab) {
       case 0:
-        return !Boolean(
-          store.height && store.gender && store.weight && store.birthday
-        );
+        return !store.height && store.gender && store.weight && store.birthday;
       case 1:
-        return !Boolean(store.goal);
+        return !store.goal;
       case 2:
-        return !Boolean(store.activityLevel);
+        return !store.activityLevel;
       case 3:
-        return !Boolean(store.mealPerDay);
+        return !store.mealPerDay;
       case 4:
-        return !Boolean(store.waterPerDay);
+        return !store.waterPerDay;
       case 5:
-        return !Boolean(store.workSchedule);
+        return !store.workSchedule;
       case 6:
-        return !Boolean(store.healthCondition);
+        return !store.healthCondition;
       default:
         return false;
     }
@@ -145,7 +143,7 @@ export default function Register() {
                 radius: 50,
               }}
               onPress={handleNext}
-              disabled={nextDisabeled()}
+              disabled={Boolean(nextDisabeled())}
             >
               <Text
                 className={`text-center text-xl ${

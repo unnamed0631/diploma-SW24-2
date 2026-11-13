@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -23,9 +23,12 @@ import { Check, Plus } from "lucide-react-native";
 const screenWidth = Dimensions.get("window").width;
 
 const Blog = () => {
-  const [dates, setDates] = useState<Moment[]>([]);
+  const [dates] = useState<Moment[]>(() => {
+    const today = moment();
+    return Array.from({ length: 7 }, (_, i) => today.clone().add(i, "days"));
+  });
   const [selectedDate, setSelectedDate] = useState(
-    moment().format("YYYY-MM-DD")
+    moment().format("YYYY-MM-DD"),
   );
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -46,15 +49,6 @@ const Blog = () => {
     fatGoal,
     // rdcGoal,
   } = useStatsStore();
-
-  useEffect(() => {
-    const today = moment();
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      days.push(today.clone().add(i, "days"));
-    }
-    setDates(days);
-  }, []);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSelectDate = (date: Moment) => {
@@ -90,7 +84,9 @@ const Blog = () => {
         <View className="items-center px-10 pb-20">
           {/* Header */}
           <View className="flex-row justify-between items-center w-full mb-4">
-            <ThemeText className="font-bold text-2xl">{t("stats.title")}</ThemeText>
+            <ThemeText className="font-bold text-2xl">
+              {t("stats.title")}
+            </ThemeText>
             <Feather name="bell" size={20} color={isDark ? "#ccc" : "black"} />
           </View>
 
@@ -172,7 +168,7 @@ const Blog = () => {
                     style={{
                       height: Math.min(
                         (item.value / item.goal) * NUTRIENT_BAR_HEIGHT,
-                        NUTRIENT_BAR_HEIGHT - 2
+                        NUTRIENT_BAR_HEIGHT - 2,
                       ),
                       minHeight: 45,
                     }}

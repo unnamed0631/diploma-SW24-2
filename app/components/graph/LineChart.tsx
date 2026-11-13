@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Canvas, Path, Skia } from '@shopify/react-native-skia';
-import { curveBasis, line, scaleLinear, scalePoint } from 'd3';
+import React, { useEffect, useState } from "react";
+import { Canvas, Path, Skia } from "@shopify/react-native-skia";
+import { curveBasis, line, scaleLinear, scalePoint } from "d3";
 import {
   SharedValue,
   clamp,
@@ -8,18 +8,18 @@ import {
   useSharedValue,
   withDelay,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
 import {
   Gesture,
   GestureDetector,
   PanGestureHandlerEventPayload,
-} from 'react-native-gesture-handler';
+} from "react-native-gesture-handler";
 
-import XAxisText from './XAxisText';
-import Cursor from './Cursor';
-import Gradient from './Gradient';
-import { getYForX, parse } from 'react-native-redash';
+import XAxisText from "./XAxisText";
+import Cursor from "./Cursor";
+import Gradient from "./Gradient";
+import { getYForX, parse } from "react-native-redash";
 
 type Props = {
   chartWidth: number;
@@ -47,13 +47,18 @@ const LineChart = ({
   const totalValue = data.reduce((acc, cur) => acc + cur.value, 0);
 
   useEffect(() => {
-    animationLine.value = withTiming(1, { duration: 1000 });
-    animationGradient.value = withDelay(
-      1000,
-      withTiming({ x: 0, y: chartHeight }, { duration: 500 })
+    animationLine.set(withTiming(1, { duration: 1000 }));
+    animationGradient.set(
+      withDelay(1000, withTiming({ x: 0, y: chartHeight }, { duration: 500 })),
     );
-    selectedValue.value = withTiming(totalValue);
-  }, [animationLine, animationGradient, selectedValue, chartHeight, totalValue]);
+    selectedValue.set(withTiming(totalValue));
+  }, [
+    animationLine,
+    animationGradient,
+    selectedValue,
+    chartHeight,
+    totalValue,
+  ]);
 
   // x domain, range, scale
   const xDomain = data.map((d) => d.label);
@@ -79,19 +84,19 @@ const LineChart = ({
 
   // Gesture handler
   const handleGestureEvent = (e: PanGestureHandlerEventPayload) => {
-    'worklet';
+    "worklet";
 
     const index = Math.floor(e.absoluteX / stepX);
     if (index >= 0 && index < data.length) {
       const selected = data[index];
 
       runOnJS(setSelectedDate)(selected.date);
-      selectedValue.value = withTiming(selected.value);
+      selectedValue.set(withTiming(selected.value));
 
       const clampValue = clamp(
         Math.floor(e.absoluteX / stepX) * stepX + chartMargin,
         chartMargin,
-        chartWidth - chartMargin
+        chartWidth - chartMargin,
       );
 
       cx.value = clampValue;
@@ -109,8 +114,8 @@ const LineChart = ({
     })
     .onTouchesUp(() => {
       runOnJS(setShowCursor)(false);
-      runOnJS(setSelectedDate)('Total');
-      selectedValue.value = withTiming(totalValue);
+      runOnJS(setSelectedDate)("Total");
+      selectedValue.set(withTiming(totalValue));
     })
     .onBegin(handleGestureEvent)
     .onChange(handleGestureEvent);
@@ -135,12 +140,7 @@ const LineChart = ({
           curvedLine={curvedLine!}
         />
         {data.map((d, i) => (
-          <XAxisText
-            key={i}
-            x={x(d.label)!}
-            y={chartHeight}
-            text={d.label}
-          />
+          <XAxisText key={i} x={x(d.label)!} y={chartHeight} text={d.label} />
         ))}
         {showCursor && <Cursor cx={cx} cy={cy} chartHeight={chartHeight} />}
       </Canvas>

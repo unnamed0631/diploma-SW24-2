@@ -1,9 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { config } from "dotenv";
+import { GoogleGenAI } from "@google/genai";
 
-config();
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 interface FoodNutrition {
   food_name: string;
@@ -14,12 +11,10 @@ interface FoodNutrition {
 }
 
 const analyzeFoodImage = async (
-  imageBase64: string
+  imageBase64: string,
 ): Promise<FoodNutrition | null> => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-    const prompt = `Analyze this image and provide nutrition information for the food shown. 
+    const prompt = `Analyze this image and provide nutrition information for the food shown.
     If the image does not contain food, return null.
     If it is food, provide the following information in JSON format:
     {
@@ -32,15 +27,19 @@ const analyzeFoodImage = async (
 
     Only return the JSON object, nothing else. If it's not food, return null.`;
 
-    const imageData = {
-      inlineData: {
-        data: imageBase64,
-        mimeType: "image/jpeg",
-      },
-    };
-
-    const result = await model.generateContent([prompt, imageData]);
-    const text = result.response.text();
+    const result = await genAI.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: "image/jpeg", data: imageBase64 } },
+          ],
+        },
+      ],
+    });
+    const text = result.text ?? "";
 
     // Check if the response is "null"
     if (text.trim().toLowerCase() === "null") {

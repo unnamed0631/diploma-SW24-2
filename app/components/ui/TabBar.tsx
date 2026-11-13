@@ -1,6 +1,5 @@
 import { BarChart, Book, Home, User } from "lucide-react-native";
 import { useAppTheme } from "@/lib/theme";
-import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React, { useEffect, useState } from "react";
 import { LayoutChangeEvent, Pressable, View, Platform } from "react-native";
 import Animated, {
@@ -23,12 +22,37 @@ type TabButtonProps = {
   onLongPress: () => void;
   isFocused: boolean;
   label: labelValues;
-  btnWidth: number;
 };
 
 type IconProps = {
   color: string;
   label: labelValues;
+};
+
+type TabRoute = {
+  key: string;
+  name: string;
+};
+
+type TabBarDescriptor = {
+  options: {
+    tabBarLabel?: unknown;
+    title?: string;
+  };
+};
+
+type TabBarState = {
+  index: number;
+  routes: TabRoute[];
+};
+
+type TabBarProps = {
+  state: TabBarState;
+  descriptors: Record<string, TabBarDescriptor>;
+  emitter: {
+    emit: (event: any) => any;
+  };
+  navigateToTab: (routeKey: string) => void;
 };
 
 const icons = (props: IconProps) => {
@@ -57,11 +81,13 @@ const TabBarButton = ({
   const isDark = theme === "dark";
 
   useEffect(() => {
-    scale.value = withSpring(isFocused ? 1 : 0, {
-      damping: 15,
-      stiffness: 120,
-      mass: 0.5,
-    });
+    scale.set(
+      withSpring(isFocused ? 1 : 0, {
+        damping: 15,
+        stiffness: 120,
+        mass: 0.5,
+      }),
+    );
   }, [scale, isFocused]);
 
   const animatedTextStyle = useAnimatedStyle(() => {
@@ -116,8 +142,9 @@ const TabBarButton = ({
 export default function TabBar({
   state,
   descriptors,
-  navigation,
-}: BottomTabBarProps) {
+  emitter,
+  navigateToTab,
+}: TabBarProps) {
   const [dimensions, setDimensions] = useState({ width: 100, height: 30 });
   const btnWidth = dimensions.width / state.routes.length;
   const { theme } = useAppTheme();
@@ -139,27 +166,28 @@ export default function TabBar({
     Platform.OS === "android"
       ? "mb-10"
       : Platform.OS === "ios"
-      ? "mb-10"
-      : "mb-0";
+        ? "mb-10"
+        : "mb-0";
 
   useEffect(() => {
     const newPosition = Math.max(
       Math.min(state.index * btnWidth, dimensions.width - btnWidth - 10),
-      10
+      10,
     );
 
-    tabPosition.value = withSpring(newPosition, {
-      damping: 15,
-      stiffness: 150,
-      mass: 0.5,
-    });
+    tabPosition.set(
+      withSpring(newPosition, {
+        damping: 15,
+        stiffness: 150,
+        mass: 0.5,
+      }),
+    );
   }, [state.index, btnWidth, dimensions.width, tabPosition]);
 
   return (
     <View
       className={`flex-row absolute bottom-[10px] left-0 right-0 items-center h-[60px] justify-between mx-12 px-3 bg-white dark:bg-slate-950 rounded-full ${barMargin}`}
       style={{ boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)" }}
-      key={state.key}
       onLayout={onTabBarLayout}
     >
       <Animated.View
@@ -177,32 +205,33 @@ export default function TabBar({
         const { options } = descriptors[route.key];
         const isFocused = state.index === index;
 
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
         const onPress = () => {
-          const event = navigation.emit({
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          const event = emitter.emit({
             type: "tabPress",
             target: route.key,
             canPreventDefault: true,
           });
           if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
+            navigateToTab(route.key);
           }
         };
 
         const onLongPress = () => {
           console.log("long press");
           Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Long_Press);
-          navigation.emit({
+          emitter.emit({
             type: "tabLongPress",
             target: route.key,
           });
         };
-        const label =
+        const rawLabel =
           options.tabBarLabel !== undefined
             ? options.tabBarLabel
             : options.title !== undefined
-            ? options.title
-            : route.name;
+              ? options.title
+              : route.name;
+        const label = typeof rawLabel === "string" ? rawLabel : route.name;
 
         return (
           <TabBarButton
@@ -210,9 +239,8 @@ export default function TabBar({
             onPress={onPress}
             onLongPress={onLongPress}
             isFocused={isFocused}
-            btnWidth={btnWidth}
             label={
-              (label?.toString().toLowerCase() as labelValues) ||
+              (label.toLowerCase() as labelValues) ||
               (route.name.toLowerCase() as labelValues)
             }
           />

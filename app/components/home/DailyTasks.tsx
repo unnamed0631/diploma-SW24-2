@@ -30,13 +30,13 @@ export default function DailyTasks() {
 
   const { tasks, isLoading, initializeTasks } = useDailyTaskStore();
   const incrementTaskProgressAction = useDailyTaskStore(
-    (state) => state.incrementTaskProgress
+    (state) => state.incrementTaskProgress,
   );
   const setTaskProgressAction = useDailyTaskStore(
-    (state) => state.setTaskProgress
+    (state) => state.setTaskProgress,
   );
   const setTriggerAuthStreakIncrement = useDailyTaskStore(
-    (state) => state.setTriggerAuthStreakIncrement
+    (state) => state.setTriggerAuthStreakIncrement,
   );
 
   // Memoize triggerFn to stabilize its reference
@@ -55,7 +55,7 @@ export default function DailyTasks() {
       setTriggerAuthStreakIncrement(triggerFn);
     } else {
       console.log(
-        "DailyTasks: incrementStreak function not available from AuthContext or not a function."
+        "DailyTasks: incrementStreak function not available from AuthContext or not a function.",
       );
     }
     // Dependencies for this effect:
@@ -65,7 +65,7 @@ export default function DailyTasks() {
   }, [triggerFn, incrementStreak, setTriggerAuthStreakIncrement]);
 
   const { currentStepCount, pastStepCount: stepsTodayTotal } = usePedometer();
-  const appState = useRef(AppState.currentState);
+  const appState = useRef<string>(AppState.currentState ?? "unknown");
 
   useEffect(() => {
     initializeTasks(t);
@@ -73,7 +73,7 @@ export default function DailyTasks() {
 
   const updateStepTaskProgress = useCallback(async () => {
     const walkTask = tasks.find(
-      (task) => task.templateId.startsWith("walk_steps_") && !task.completed
+      (task) => task.templateId.startsWith("walk_steps_") && !task.completed,
     );
 
     if (walkTask) {
@@ -81,7 +81,7 @@ export default function DailyTasks() {
         if (stepsTodayTotal !== walkTask.current) {
           await setTaskProgressAction(
             walkTask.id,
-            stepsTodayTotal > 0 ? stepsTodayTotal : currentStepCount
+            stepsTodayTotal > 0 ? stepsTodayTotal : currentStepCount,
           );
         } else {
         }

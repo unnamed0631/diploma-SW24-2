@@ -5,7 +5,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from "react-native";
-import { useState, use, useEffect } from "react";
+import { useState, use } from "react";
 import { useNavigation, useRouter } from "expo-router";
 import { ThemeView, ThemeText, Avatar } from "@/components";
 import { useAppTheme } from "@/lib/theme";
@@ -24,7 +24,8 @@ export default function Edit() {
   const [name, setName] = useState(user?.username || "");
   const [image, setImage] = useState<string | null>(user?.image || null);
   const [showImagePicker, setShowImagePicker] = useState(false);
-  const [saveDisabled, setSaveDisabled] = useState(true);
+  const saveDisabled =
+    (name === "" || name === user?.username) && image === user?.image;
 
   const handleBack = () => {
     if (navigation.canGoBack()) {
@@ -33,14 +34,6 @@ export default function Edit() {
       router.push("/");
     }
   };
-
-  useEffect(() => {
-    if ((name === "" || name === user?.username) && image === user?.image) {
-      setSaveDisabled(true);
-    } else {
-      setSaveDisabled(false);
-    }
-  }, [image, name, user]);
 
   const handleSave = async () => {
     console.log("saving");

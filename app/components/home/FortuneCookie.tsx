@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Cookie } from "lucide-react-native";
 import { useAppTheme } from "@/lib/theme";
@@ -14,11 +14,10 @@ import { useTranslation } from "@/lib/language";
 
 export default function FortuneCookie() {
   const { theme } = useAppTheme();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const iconColor = theme === "dark" ? "#fcd34d" : "#92400e";
 
   const [cracked, setCracked] = useState(false);
-  const [quote, setQuote] = useState("");
 
   const leftAnim = useSharedValue(0);
   const rightAnim = useSharedValue(0);
@@ -27,13 +26,13 @@ export default function FortuneCookie() {
   const fortuneTranslate = useSharedValue(20);
   const containerHeight = useSharedValue(50);
 
-  const getRandomQuote = useCallback(() => {
-    const currentQuotes = t("fortuneCookie.quotes", {
-      returnObjects: true,
-    }) as string[];
-    const index = Math.floor(Math.random() * currentQuotes.length);
-    return currentQuotes[index];
-  }, [t]);
+  const quotes = t("fortuneCookie.quotes", {
+    returnObjects: true,
+  }) as string[];
+  const [quoteIndex, setQuoteIndex] = useState(() =>
+    Math.floor(Math.random() * 1000),
+  );
+  const quote = quotes.length > 0 ? quotes[quoteIndex % quotes.length] : "";
 
   const leftStyle = useAnimatedStyle(() => ({
     transform: [
@@ -70,55 +69,61 @@ export default function FortuneCookie() {
 
   const animateCrack = () => {
     setCracked((p) => !p);
-    setQuote(getRandomQuote());
+    setQuoteIndex(Math.floor(Math.random() * 1000));
 
-    leftAnim.value = withTiming(1, {
-      duration: 1000,
-      easing: Easing.out(Easing.ease),
-    });
-    rightAnim.value = withTiming(1, {
-      duration: 1000,
-      easing: Easing.out(Easing.ease),
-    });
-    containerHeight.value = withTiming(100, {
-      duration: 1000,
-      easing: Easing.out(Easing.ease),
-    });
+    leftAnim.set(
+      withTiming(1, {
+        duration: 1000,
+        easing: Easing.out(Easing.ease),
+      }),
+    );
+    rightAnim.set(
+      withTiming(1, {
+        duration: 1000,
+        easing: Easing.out(Easing.ease),
+      }),
+    );
+    containerHeight.set(
+      withTiming(100, {
+        duration: 1000,
+        easing: Easing.out(Easing.ease),
+      }),
+    );
 
     setTimeout(() => {
-      fortuneOpacity.value = withTiming(1, {
-        duration: 600,
-        easing: Easing.out(Easing.ease),
-      });
-      fortuneTranslate.value = withTiming(0, {
-        duration: 600,
-        easing: Easing.out(Easing.ease),
-      });
+      fortuneOpacity.set(
+        withTiming(1, {
+          duration: 600,
+          easing: Easing.out(Easing.ease),
+        }),
+      );
+      fortuneTranslate.set(
+        withTiming(0, {
+          duration: 600,
+          easing: Easing.out(Easing.ease),
+        }),
+      );
     }, 400);
   };
 
   useEffect(() => {
     if (!cracked) {
-      shakeAnim.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 80 }),
-          withTiming(-1, { duration: 100 }),
-          withTiming(0, { duration: 80 })
+      shakeAnim.set(
+        withRepeat(
+          withSequence(
+            withTiming(1, { duration: 80 }),
+            withTiming(-1, { duration: 100 }),
+            withTiming(0, { duration: 80 }),
+          ),
+          -1,
+          true,
         ),
-        -1,
-        true
       );
     }
     return () => {
-      shakeAnim.value = 0;
+      shakeAnim.set(0);
     };
   }, [cracked, shakeAnim]);
-
-  useEffect(() => {
-    if (cracked) {
-      setQuote(getRandomQuote());
-    }
-  }, [i18n.language, cracked, getRandomQuote]);
 
   return (
     <Pressable
