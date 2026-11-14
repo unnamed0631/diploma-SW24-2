@@ -1,6 +1,5 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { useAppTheme } from "@/lib/theme";
 import LottieView from "lottie-react-native";
 import Reanimated, {
   interpolate,
@@ -18,10 +17,7 @@ export default function ProgressAnimation({
   progressText,
   progress,
 }: ProgressAnimationProps) {
-  const { theme } = useAppTheme();
-  const isDarkMode = theme === "dark";
-  const textColor = isDarkMode ? "text-white" : "text-black";
-  const backgroundColor = isDarkMode ? "bg-[#1e1e1e]" : "bg-white";
+  const backgroundColor = "bg-background";
 
   const progressInterpolate = useDerivedValue(() => {
     return interpolate(progress, [0, 1], [0, 100]);
@@ -41,22 +37,22 @@ export default function ProgressAnimation({
       </View>
 
       <View className="items-center mb-8">
-        <Text className={`text-lg font-bold text-center ${textColor}`}>
+        <Text className={`text-lg font-bold text-center text-foreground`}>
           {title}
         </Text>
       </View>
 
       <View className="w-full items-center">
-        <View className="w-full h-2 bg-gray-200 rounded-full">
+        <View className="w-full h-2 bg-muted rounded-full">
           <Reanimated.View
             style={{
               width: progressInterpolate.value,
             }}
-            className="h-full bg-blue-600 rounded-full"
+            className="h-full bg-primary rounded-full"
           />
         </View>
 
-        <Text className={`text-base mt-2 ${textColor}`}>{progressText}</Text>
+        <Text className="text-base mt-2 text-foreground">{progressText}</Text>
       </View>
     </View>
   );

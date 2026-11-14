@@ -12,7 +12,8 @@
     "start": "bun src/server.ts",
     "build": "tsc && tsc-alias --resolve-full-paths",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "seed": "SEED_MODE=true bun src/seed/seed.ts"
   },
   "keywords": [],
   "author": "",

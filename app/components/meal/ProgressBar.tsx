@@ -11,8 +11,7 @@ export default function ProgressBar({
   currentStep,
   totalSteps,
 }: ProgressBarProps) {
-  const { theme } = useAppTheme();
-  const isDarkMode = theme === "dark";
+  const { colors } = useAppTheme();
 
   return (
     <View style={styles.progressBar}>
@@ -23,13 +22,7 @@ export default function ProgressBar({
             styles.progressStep,
             {
               backgroundColor:
-                i === currentStep
-                  ? isDarkMode
-                    ? "#ffffff"
-                    : "#2c2c2c"
-                  : isDarkMode
-                  ? "#2c2c2c"
-                  : "#D1D5DB",
+                i === currentStep ? colors.foreground : colors.muted,
             },
           ]}
         />

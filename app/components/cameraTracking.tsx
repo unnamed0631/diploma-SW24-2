@@ -12,6 +12,8 @@ import { useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useTranslation } from "@/lib/language";
+import { useAppTheme } from "@/lib/theme";
+import { useActivityStore } from "@/stores/activityStore";
 
 const API_KEY = process.env.EXPO_PUBLIC_POSETRACKER_API_KEY;
 const POSETRACKER_API = "https://app.posetracker.com/pose_tracker/tracking";
@@ -22,10 +24,13 @@ export default function CameraTracking() {
   const [repsCounter, setRepsCounter] = useState(0);
   const [permission, requestPermission] = useCameraPermissions();
   const { t } = useTranslation();
+  const { colors } = useAppTheme();
 
   const [fadeAnim] = useState(() => new Animated.Value(0));
   const [successAnim] = useState(() => new Animated.Value(0));
   const prevReadyRef = useRef<boolean | null>(null);
+  const repsRef = useRef(0);
+  const didSaveRef = useRef(false);
 
   const [countdown, setCountdown] = useState<number | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -46,6 +51,20 @@ export default function CameraTracking() {
   };
 
   const showSuccessAndGoBack = () => {
+    // This runs from the countdown interval, whose closure is stale by the time
+    // it fires, so the rep count and the once-per-session guard both use refs.
+    if (!didSaveRef.current) {
+      didSaveRef.current = true;
+      const reps = repsRef.current;
+      void useActivityStore.getState().addEntry({
+        type: "workout",
+        title: "Squat session",
+        detail: `${reps} reps · 60s`,
+        reps,
+        durationMinutes: 1,
+      });
+    }
+
     Animated.timing(successAnim, {
       toValue: 1,
       duration: 500,
@@ -101,6 +120,7 @@ export default function CameraTracking() {
   };
 
   const handleCounter = (count: number) => {
+    repsRef.current = count;
     setRepsCounter(count);
   };
 
@@ -160,6 +180,9 @@ export default function CameraTracking() {
   `;
 
   const getBackgroundColor = () => {
+    // State-coded feedback panel: neutral while idle, blue when ready, red when
+    // the body is out of frame. Kept as hex because StyleSheet colours below
+    // (e.g. `readyText`) are tuned for these light fills.
     if (!poseTrackerInfos) return "#ffffffee";
     return poseTrackerInfos.ready ? "#cce5ff" : "#ffcccc";
   };
@@ -189,7 +212,7 @@ export default function CameraTracking() {
       >
         {!poseTrackerInfos ? (
           <>
-            <ActivityIndicator size="large" color="#0000ff" />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.statusText}>
               {t("cameraTracking.activatingAI")}
             </Text>

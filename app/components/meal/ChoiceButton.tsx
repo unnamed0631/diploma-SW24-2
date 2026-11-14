@@ -13,11 +13,10 @@ export default function ChoiceButton({
   isSelected,
   onPress,
 }: ChoiceButtonProps) {
-  const { theme } = useAppTheme();
-  const isDarkMode = theme === "dark";
-  const textColor = isDarkMode ? "#ffffff" : "#000000";
-  const borderColor = isDarkMode ? "#444" : "#ccc";
-  const selectedBorderColor = isDarkMode ? "#ffffff" : "#2c2c2c";
+  const { colors } = useAppTheme();
+  const textColor = colors.foreground;
+  const borderColor = colors.border;
+  const selectedBorderColor = colors.foreground;
 
   return (
     <TouchableOpacity

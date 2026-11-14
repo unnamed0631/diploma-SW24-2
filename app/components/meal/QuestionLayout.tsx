@@ -14,12 +14,10 @@ export default function QuestionLayout({
   currentStep,
   totalSteps = 5,
 }: QuestionLayoutProps) {
-  const { theme } = useAppTheme();
-  const isDarkMode = theme === "dark";
-  const backgroundColor = isDarkMode ? "#1e1e1e" : "#ffffff";
+  const { colors } = useAppTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ProgressBar currentStep={currentStep} totalSteps={totalSteps} />
       {children}
     </View>

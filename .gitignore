@@ -90,5 +90,8 @@ app/ios/
 *.keystore
 *.jks
 
+# Local image fallback written by `bun run seed` when Firebase is absent
+server/public/uploads/
+
 # Bun lockfile must be committed (do not ignore it)
 !bun.lock

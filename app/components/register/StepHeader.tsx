@@ -31,7 +31,7 @@ const StepHeader: React.FC<StepHeaderProps> = ({
       </View>
       <View className="flex-1 items-center">
         <Text
-          className="font-bold text-center text-gray-500 dark:text-gray-200"
+          className="font-bold text-center text-subtle"
           style={{ fontSize: titleSize }}
         >
           {title}

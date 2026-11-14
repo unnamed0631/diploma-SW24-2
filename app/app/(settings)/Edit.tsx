@@ -16,7 +16,7 @@ import ImagePickerModal from "@/components/ui/ImagePickerModal";
 import { Camera } from "expo-camera";
 
 export default function Edit() {
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
   const router = useRouter();
   const navigation = useNavigation();
   const { user, isUpdating, update } = use(AuthContext);
@@ -98,59 +98,47 @@ export default function Edit() {
       <View>
         {/* Header */}
         <View className="flex-row items-center justify-between w-full">
-          <View className="border-2 border-gray-200 dark:border-gray-700 rounded-full">
+          <View className="border-2 border-border rounded-full">
             <Pressable
               android_disableSound
               android_ripple={{
-                color: "#dddddd",
+                color: colors.subtle,
                 radius: 20,
               }}
               className="p-2"
               onPress={handleBack}
             >
-              <Icon
-                source="chevron-left"
-                size={25}
-                color={theme === "dark" ? "#fff" : "#000"}
-              />
+              <Icon source="chevron-left" size={25} color={colors.foreground} />
             </Pressable>
           </View>
           <ThemeText className="text-2xl text-center font-semibold">
             Edit
           </ThemeText>
           <Pressable
-            className="border-2 border-gray-200 dark:border-gray-700 p-2 rounded-full"
+            className="border-2 border-border p-2 rounded-full"
             onPress={handleBack}
           >
-            <Icon
-              source="cog-outline"
-              size={25}
-              color={theme === "dark" ? "#fff" : "#000"}
-            />
+            <Icon source="cog-outline" size={25} color={colors.foreground} />
           </Pressable>
         </View>
         {/* Profile image */}
-        <Text className="mt-8 text-lg text-gray-400 dark:text-gray-400">
-          Profile picture
-        </Text>
+        <Text className="mt-8 text-lg text-subtle">Profile picture</Text>
         <View className="flex-row justify-center relative mt-4">
           <Pressable
             className="relative p-2"
             onPress={() => setShowImagePicker(true)}
           >
             <Avatar size={120} image={image} />
-            <View className="border-2 border-white bg-black p-2 rounded-full absolute z-10 right-0 bottom-0">
-              <Icon source="pencil" size={20} color="white" />
+            <View className="border-2 border-background bg-foreground p-2 rounded-full absolute z-10 right-0 bottom-0">
+              <Icon source="pencil" size={20} color={colors.background} />
             </View>
           </Pressable>
         </View>
 
         {/* Name */}
-        <Text className="mt-8 text-lg text-gray-400 dark:text-gray-400">
-          Username
-        </Text>
+        <Text className="mt-8 text-lg text-subtle">Username</Text>
         <TextInput
-          className="border border-gray-300 dark:border-gray-600 px-8 py-4 rounded-full text-black dark:text-white mt-4"
+          className="border border-border px-8 py-4 rounded-full text-foreground mt-4"
           placeholder="Enter your name"
           value={name}
           onChangeText={setName}
@@ -163,14 +151,14 @@ export default function Edit() {
       <Pressable
         onPress={handleSave}
         disabled={isDisabled}
-        className={`bg-blue-500 py-4 rounded-full mb-20 ${
-          isDisabled && "bg-blue-900"
+        className={`bg-primary py-4 rounded-full mb-20 ${
+          isDisabled ? "opacity-50" : ""
         }`}
       >
         {isUpdating ? (
-          <ActivityIndicator color="white" size="small" />
+          <ActivityIndicator color={colors.primaryForeground} size="small" />
         ) : (
-          <Text className="text-white text-center text-xl font-semibold">
+          <Text className="text-primary-foreground text-center text-xl font-semibold">
             Save
           </Text>
         )}

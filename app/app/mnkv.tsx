@@ -13,7 +13,7 @@ const Mnkv = () => {
   const { user } = React.useContext(AuthContext);
 
   const handleNext = () => {
-    router.push("/asuult");
+    router.push("/(meal)/asuult");
   };
 
   return (
@@ -21,20 +21,20 @@ const Mnkv = () => {
       <View className="w-full">
         <View className="flex-row">
           <Text
-            className="text-3xl font-bold text-black dark:text-white"
+            className="text-3xl font-bold text-foreground"
             style={{ paddingLeft: 20 }}
           >
-            {t("mnkv.hello")} 
+            {t("mnkv.hello")}
           </Text>
           <Text
-            className="text-3xl font-bold text-black dark:text-white"
+            className="text-3xl font-bold text-foreground"
             style={{ paddingLeft: 20 }}
           >
             {user?.username} !
           </Text>
         </View>
         <Text
-          className="text-base mt-4 text-gray-700 dark:text-gray-300"
+          className="text-base mt-4 text-muted-foreground"
           style={{ paddingLeft: 20 }}
         >
           {t("mnkv.text")}
@@ -43,9 +43,11 @@ const Mnkv = () => {
 
       <TouchableOpacity
         onPress={handleNext}
-        className="w-[90%] h-14 bg-[#136CF1] rounded-full items-center justify-center mt-10"
+        className="w-[90%] h-14 bg-primary rounded-full items-center justify-center mt-10"
       >
-        <Text className="text-white font-bold text-lg">{t("mnkv.continue")}</Text>
+        <Text className="text-primary-foreground font-bold text-lg">
+          {t("mnkv.continue")}
+        </Text>
       </TouchableOpacity>
     </ThemeView>
   );

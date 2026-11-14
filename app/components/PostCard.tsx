@@ -12,8 +12,9 @@ import Animated, {
 import Text from "@/components/ui/FonttoiText";
 import ThemeView from "./ui/ThemeView";
 import { AuthContext } from "@/context/auth";
-import { use, useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAppTheme } from "@/lib/theme";
+import { use } from "react";
+
 interface PostCardProps {
   post: Post;
 }
@@ -22,19 +23,12 @@ export default function PostCard({ post }: PostCardProps) {
   const { user } = use(AuthContext);
   const router = useRouter();
   const { toggleLike, toggleBookmark } = useBlogStore();
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const { colors } = useAppTheme();
+  // Bookmark state is hydrated by the store, so the card never touches storage.
+  const isBookmarked = post.isBookmarked ?? false;
   const isLiked = post.likes?.includes(user?._id ?? "") ?? false;
   const likeCount = post.likes?.length ?? 0;
-
-  useEffect(() => {
-    const getBookMarks = async () => {
-      const bookMarks = await AsyncStorage.getItem("bookMarks");
-      return bookMarks?.includes(post._id);
-    };
-    getBookMarks().then((isBookmarked) =>
-      setIsBookmarked(Boolean(isBookmarked)),
-    );
-  }, [post._id]);
+  const commentCount = post.comments?.length ?? 0;
 
   const scale = useSharedValue(1);
 
@@ -54,7 +48,6 @@ export default function PostCard({ post }: PostCardProps) {
 
   const handleBookmark = () => {
     toggleBookmark(post._id);
-    setIsBookmarked(!isBookmarked);
   };
 
   const navigateToDetail = () =>
@@ -68,33 +61,32 @@ export default function PostCard({ post }: PostCardProps) {
     <ThemeView className="flex-1">
       <Pressable
         onPress={navigateToDetail}
-        className="border border-gray-300 dark:border-gray-700 p-6 rounded-3xl mb-5 bg-white dark:bg-gray-800/40"
+        className="border border-border p-6 rounded-3xl mb-5 bg-card"
         accessibilityLabel={`Open post titled ${post.title}`}
       >
         {/* Author */}
         <View className="flex-row items-center mb-3">
           <Image
-            source={{ uri: post.author?.image ?? "" }}
+            source={
+              post.author?.image
+                ? { uri: post.author.image }
+                : require("@/assets/img/profile.png")
+            }
             className="w-10 h-10 rounded-full mr-3"
           />
           <View>
-            <Text className="font-bold text-neutral-800 dark:text-gray-100">
+            <Text className="font-bold text-foreground">
               {post.author?.username}
             </Text>
-            <Text className="text-xs text-neutral-500 dark:text-gray-400">
-              {timeAgo}
-            </Text>
+            <Text className="text-xs text-subtle">{timeAgo}</Text>
           </View>
         </View>
 
         {/* Title and Content */}
-        <Text className="text-lg font-bold text-neutral-800 dark:text-gray-100 mb-2">
+        <Text className="text-lg font-bold text-foreground mb-2">
           {post.title}
         </Text>
-        <Text
-          className="text-neutral-700 dark:text-gray-300 mb-3"
-          numberOfLines={3}
-        >
+        <Text className="text-muted-foreground mb-3" numberOfLines={3}>
           {post.content}
         </Text>
 
@@ -117,13 +109,11 @@ export default function PostCard({ post }: PostCardProps) {
             <Animated.View style={animatedStyle}>
               <Heart
                 size={20}
-                color={isLiked ? "#E9509F" : "#6B7280"}
-                fill={isLiked ? "#E9509F" : "transparent"}
+                color={isLiked ? colors.accent : colors.mutedForeground}
+                fill={isLiked ? colors.accent : "transparent"}
               />
             </Animated.View>
-            <Text className="ml-1 text-neutral-600 dark:text-gray-300">
-              {likeCount}
-            </Text>
+            <Text className="ml-1 text-muted-foreground">{likeCount}</Text>
           </Pressable>
 
           <Pressable
@@ -131,20 +121,20 @@ export default function PostCard({ post }: PostCardProps) {
             onPress={navigateToDetail}
             accessibilityLabel="View comments"
           >
+            {/* Mint green is a deliberate comment-icon colour with no token. */}
             <MessageCircle size={20} color="#20FFB8" />
-            <Text className="ml-1 text-neutral-600 dark:text-gray-300">
-              {post.comments.length}
-            </Text>
+            <Text className="ml-1 text-muted-foreground">{commentCount}</Text>
           </Pressable>
 
           <Pressable
             onPress={handleBookmark}
             accessibilityLabel="Bookmark post"
+            accessibilityState={{ selected: isBookmarked }}
           >
             <Bookmark
               size={20}
-              color={isBookmarked ? "#3B82F6" : "#6B7280"}
-              fill={isBookmarked ? "#3B82F6" : "transparent"}
+              color={isBookmarked ? colors.primary : colors.mutedForeground}
+              fill={isBookmarked ? colors.primary : "transparent"}
             />
           </Pressable>
         </View>

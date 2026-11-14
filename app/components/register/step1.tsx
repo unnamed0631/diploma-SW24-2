@@ -22,7 +22,7 @@ export default function Step1() {
   const [height, setHeight] = useState("");
   const [weightUnit, setWeightUnit] = useState("kg");
   const [heightUnit, setHeightUnit] = useState("cm");
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
 
   const items = useMemo<DropdownItem[]>(() => {
     const currentGenderChoices = t("register.steps.step1.question1.choices", {
@@ -88,11 +88,11 @@ export default function Step1() {
 
   return (
     <View className="flex-1 gap-4 items-center px-6 mt-24">
-      <Text className="text-2xl font-bold text-center text-black dark:text-white">
+      <Text className="text-2xl font-bold text-center text-foreground">
         {/* {languages[language].register.steps.step1.title} */}
         {t("register.steps.step1.title")}
       </Text>
-      <Text className="text-gray-300 text-xl w-[300px] font-semibold dark:text-gray-500 text-center mt-4">
+      <Text className="text-subtle text-xl w-[300px] font-semibold text-center mt-4">
         {/* {languages[language].register.steps.step1.desc} */}
         {t("register.steps.step1.desc")}
       </Text>
@@ -110,43 +110,41 @@ export default function Step1() {
           placeholder={t("register.steps.step1.question1.title")}
           style={{
             borderRadius: 12,
-            borderColor: theme === "dark" ? "#4b5563" : "#ccc",
+            borderColor: colors.border,
             paddingHorizontal: 16,
             paddingVertical: 16,
-            backgroundColor: theme === "dark" ? "#ffffff15" : "#fff",
+            backgroundColor: colors.card,
           }}
           dropDownContainerStyle={{
-            borderColor: theme === "dark" ? "#4b5563" : "#ccc",
-            backgroundColor: theme === "dark" ? "#111827" : "#fff",
+            borderColor: colors.border,
+            backgroundColor: colors.card,
             borderRadius: 12,
           }}
           placeholderStyle={{
             fontSize: 15,
-            color: theme === "dark" ? "#ffffff" : "#000",
+            color: colors.foreground,
             fontWeight: "semibold",
           }}
           textStyle={{
             fontSize: 15,
-            color: theme === "dark" ? "#ffffff" : "#000",
+            color: colors.foreground,
           }}
           ArrowUpIconComponent={() => (
-            <ChevronUpIcon color={theme === "dark" ? "#ffffff" : "#000"} />
+            <ChevronUpIcon color={colors.foreground} />
           )}
           ArrowDownIconComponent={() => (
-            <ChevronDownIcon color={theme === "dark" ? "#ffffff" : "#000"} />
+            <ChevronDownIcon color={colors.foreground} />
           )}
-          TickIconComponent={() => (
-            <CheckIcon color={theme === "dark" ? "#ffffff" : "#000"} />
-          )}
+          TickIconComponent={() => <CheckIcon color={colors.foreground} />}
         />
       </View>
 
       {/* Date Picker */}
       <Pressable
         onPress={() => setShowDatePicker(true)}
-        className="w-full border border-gray-300 dark:border-gray-600 rounded-xl py-5 px-4 bg-white dark:bg-[#ffffff15]"
+        className="w-full border border-border rounded-xl py-5 px-4 bg-card"
       >
-        <Text className="text-gray-500 dark:text-white font-normal text-base">
+        <Text className="text-subtle font-normal text-base">
           {/* {dob ? dob.toDateString() : "Төрсөн өдрөө сонгоно уу"} */}
           {dob ? dob.toDateString() : t("register.steps.step1.date")}
         </Text>
@@ -164,7 +162,7 @@ export default function Step1() {
 
       {/* Weight Input */}
       <View className="w-full flex-row items-center justify-between gap-4">
-        <View className="flex-1 flex-row items-center border border-gray-300 dark:border-gray-600 rounded-2xl text-gray-500 dark:text-white bg-white dark:bg-[#ffffff15] px-4 py-3 ">
+        <View className="flex-1 flex-row items-center border border-border rounded-2xl text-subtle bg-card px-4 py-3 ">
           <TextInput
             // placeholder={languages[language].register.steps.step1.weight}
             placeholder={t("register.steps.step1.weight")}
@@ -172,8 +170,8 @@ export default function Step1() {
             value={weight}
             onChangeText={handleWeight}
             keyboardType="numeric"
-            placeholderClassName="text-gray-500 dark:text-white"
-            className="flex-1 text-base text-gray-800 dark:text-white font-medium"
+            placeholderClassName="text-subtle"
+            className="flex-1 text-base text-foreground font-medium"
             submitBehavior="blurAndSubmit"
             returnKeyType="done"
           />
@@ -182,9 +180,9 @@ export default function Step1() {
           onPress={() =>
             setWeightUnit((prev) => (prev === "kg" ? "lbs" : "kg"))
           }
-          className="w-16 h-[60px] bg-[#0066FF] rounded-2xl items-center justify-center shadow-md shadow-blue-600/50"
+          className="w-16 h-[60px] bg-primary rounded-2xl items-center justify-center shadow-md shadow-blue-600/50"
         >
-          <Text className="text-white font-bold">
+          <Text className="text-primary-foreground font-bold">
             {weightUnit.toUpperCase()}
           </Text>
         </Pressable>
@@ -192,7 +190,7 @@ export default function Step1() {
 
       {/* Height Input */}
       <View className="w-full flex-row items-center justify-between gap-4 ">
-        <View className="flex-1 flex-row items-center border border-gray-300 dark:border-gray-600 rounded-2xl bg-white dark:bg-[#ffffff15] px-4 py-3">
+        <View className="flex-1 flex-row items-center border border-border rounded-2xl bg-card px-4 py-3">
           <TextInput
             // placeholder={languages[language].register.steps.step1.height}
             placeholder={t("register.steps.step1.height")}
@@ -200,16 +198,16 @@ export default function Step1() {
             value={height}
             onChangeText={handleHeight}
             keyboardType="numeric"
-            className="flex-1 text-base text-gray-800 dark:text-white font-medium"
+            className="flex-1 text-base text-foreground font-medium"
             submitBehavior="blurAndSubmit"
             returnKeyType="done"
           />
         </View>
         <Pressable
           onPress={() => setHeightUnit((prev) => (prev === "cm" ? "ft" : "cm"))}
-          className="w-16 h-[60px] bg-[#0066FF] rounded-2xl items-center justify-center shadow-md shadow-blue-600/50"
+          className="w-16 h-[60px] bg-primary rounded-2xl items-center justify-center shadow-md shadow-blue-600/50"
         >
-          <Text className="text-white font-bold">
+          <Text className="text-primary-foreground font-bold">
             {heightUnit.toUpperCase()}
           </Text>
         </Pressable>

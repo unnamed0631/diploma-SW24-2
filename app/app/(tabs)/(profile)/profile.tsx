@@ -10,6 +10,7 @@ import { Icon } from "react-native-paper";
 import { useAppTheme } from "@/lib/theme";
 import { AuthContext } from "@/context/auth";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useStatsStore } from "@/stores/statsStore";
 
 type TabButtonProps = {
   children: string;
@@ -19,8 +20,8 @@ type TabButtonProps = {
 
 const TabButton = ({ children, selected, onPress }: TabButtonProps) => (
   <View
-    className={`flex-1 overflow-hidden  ${
-      selected ? "bg-white dark:bg-blue-600 rounded-full h-9" : ""
+    className={`flex-1 overflow-hidden ${
+      selected ? "bg-primary rounded-full h-9" : ""
     }`}
   >
     <Pressable
@@ -31,7 +32,10 @@ const TabButton = ({ children, selected, onPress }: TabButtonProps) => (
       onPress={onPress}
       className="flex-1 justify-center items-center"
     >
-      <ThemeText className={`${selected ? "font-bold" : ""}`}>
+      <ThemeText
+        variant={selected ? "inverse" : "muted"}
+        className={`${selected ? "font-bold" : ""}`}
+      >
         {children}
       </ThemeText>
     </Pressable>
@@ -109,7 +113,7 @@ const Tabs = () => {
 
   return (
     <View className="flex-1 w-[85%] my-2" onLayout={setDimensions}>
-      <View className="flex-row justify-between w-full items-center h-10 bg-blue-50 px-1 rounded-full dark:bg-gray-800">
+      <View className="flex-row justify-between w-full items-center h-10 bg-primary-soft px-1 rounded-full">
         <TabButton
           selected={selectedTab === 0}
           onPress={() => handleTabPress(0)}
@@ -153,7 +157,7 @@ const Tabs = () => {
 export default function Profile() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
   const navigation = useNavigation();
   const handleBack = () => {
     if (navigation.canGoBack()) {
@@ -163,39 +167,39 @@ export default function Profile() {
     }
   };
   const { user } = use(AuthContext);
+  const { calories: todayCalories } = useStatsStore();
+
+  // `totalCalories` is returned by the API but isn't part of the local `User`
+  // type yet, so read it through an intersection instead of `any`.
+  const userTotalCalories = (user as (User & { totalCalories?: number }) | null)
+    ?.totalCalories;
+  const hasTotalCalories = typeof userTotalCalories === "number";
+  const caloriesValue = hasTotalCalories ? userTotalCalories : todayCalories;
 
   const handlePfp = () => {
     router.push("/(settings)/Edit");
   };
 
   return (
-    <SafeAreaView className="items-center justify-center dark:bg-gray-900 bg-white flex-1">
+    <SafeAreaView className="items-center justify-center bg-background flex-1">
       <View className="flex-row items-center px-6 justify-between w-full mt-5">
-        <View className="border-2 border-gray-200 dark:border-gray-700 overflow-hidden rounded-full">
+        <View className="border-2 border-border overflow-hidden rounded-full">
           <Pressable
             android_ripple={{ color: "#00000020", radius: 40 }}
             onPress={handleBack}
             className="p-2"
           >
-            <Icon
-              source="chevron-left"
-              size={25}
-              color={theme === "dark" ? "#fff" : "#000"}
-            />
+            <Icon source="chevron-left" size={25} color={colors.foreground} />
           </Pressable>
         </View>
         <ThemeText className="text-2xl text-center font-semibold">
           {t("profile1.title")}
         </ThemeText>
         <Pressable
-          className="border-2 border-gray-200 dark:border-gray-700 p-2 rounded-full"
+          className="border-2 border-border p-2 rounded-full"
           onPress={() => router.push("/settings")}
         >
-          <Icon
-            source="cog-outline"
-            size={25}
-            color={theme === "dark" ? "#fff" : "#000"}
-          />
+          <Icon source="cog-outline" size={25} color={colors.foreground} />
         </Pressable>
       </View>
       <Pressable
@@ -210,28 +214,25 @@ export default function Profile() {
       </ThemeText>
       <View className="flex-row items-center justify-between w-1/2 my-4">
         <View className="items-center">
-          <Icon
-            source="flash-outline"
-            color={theme === "dark" ? "#fff" : "#000"}
-            size={30}
-          />
-          <ThemeText className="font-semibold text-xl">247</ThemeText>
-          <ThemeText className="color-gray-400">
-            {t("profile1.calories")}
+          <Icon source="flash-outline" color={colors.foreground} size={30} />
+          <ThemeText className="font-semibold text-xl">
+            {caloriesValue}
+          </ThemeText>
+          <ThemeText className="text-subtle">
+            {hasTotalCalories ? t("profile1.calories") : "Today's Calories"}
           </ThemeText>
         </View>
         <View className="items-center">
-          <Icon
-            source="account-outline"
-            color={theme === "dark" ? "#fff" : "#000"}
-            size={30}
-          />
-          <ThemeText className="font-semibold text-xl">0</ThemeText>
-          <ThemeText className="color-gray-400">
+          <Icon source="account-outline" color={colors.foreground} size={30} />
+          <ThemeText className="font-semibold text-xl">—</ThemeText>
+          <ThemeText className="text-subtle">
             {t("profile1.followers")}
           </ThemeText>
         </View>
       </View>
+      <ThemeText className="text-xs text-subtle text-center px-8 mb-2">
+        Followers and social features aren&apos;t available yet.
+      </ThemeText>
       <Tabs />
     </SafeAreaView>
   );

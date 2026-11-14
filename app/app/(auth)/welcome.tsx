@@ -10,7 +10,7 @@ import { ChevronLeft } from "lucide-react-native";
 
 export default function LoginOrRegister() {
   const router = useRouter();
-  const { theme } = useAppTheme();
+  const { theme, colors } = useAppTheme();
   const { setField } = useRegisterStore();
   const navigation = useNavigation();
   const { t } = useTranslation();
@@ -30,10 +30,10 @@ export default function LoginOrRegister() {
   useFocusEffect(
     useCallback(() => {
       setField("progress", 0);
-    }, [setField])
+    }, [setField]),
   );
   return (
-    <ThemeView className="dark:bg-blue1 flex-1 items-center pb-20 justify-between">
+    <ThemeView className="flex-1 items-center pb-20 justify-between">
       <View className="h-[60px] w-full justify-center items-start overflow-hidden rounded-full p-4 ">
         <Pressable
           className="rounded-full items-center justify-center overflow-hidden"
@@ -44,7 +44,7 @@ export default function LoginOrRegister() {
           android_disableSound
           onPress={handleBack}
         >
-          <ChevronLeft size={45} color={theme === "dark" ? "#fff" : "#000"} />
+          <ChevronLeft size={45} color={colors.foreground} />
         </Pressable>
       </View>
 
@@ -65,21 +65,21 @@ export default function LoginOrRegister() {
       <View className="w-3/4 mx-auto flex flex-row items-center justify-center gap-4">
         <TouchableHighlight
           onPress={handleLogin}
-          className="border-2 border-black dark:bg-white rounded-full px-10 py-2 items-center "
+          className="border-2 border-border bg-card rounded-full px-10 py-2 items-center "
           activeOpacity={0.9}
           underlayColor={"#DDDDDD"}
         >
-          <Text className="text-lg text-black font-semibold text-center">
+          <Text className="text-lg text-foreground font-semibold text-center">
             {t("login.button1")}
           </Text>
         </TouchableHighlight>
         <TouchableHighlight
           onPress={handleRegister}
-          className="bg-blue1/70 border-2 border-blue1 dark:bg-white rounded-full px-10 py-2 items-center"
+          className="bg-primary/70 border-2 border-primary rounded-full px-10 py-2 items-center"
           activeOpacity={0.9}
           underlayColor={"#DDDDDD"}
         >
-          <Text className="text-lg text-black font-semibold text-center">
+          <Text className="text-lg text-foreground font-semibold text-center">
             {t("login.button2")}
           </Text>
         </TouchableHighlight>

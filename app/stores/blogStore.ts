@@ -35,6 +35,9 @@ export interface Post {
   updatedAt: Date;
 }
 
+/** Single source of truth for the bookmark ids stored on the device. */
+export const BOOKMARKS_STORAGE_KEY = "bookmarkedPosts";
+
 interface BlogState {
   currentUser: User | null;
   posts: Post[];
@@ -43,11 +46,12 @@ interface BlogState {
     title: string;
     content: string;
     image: string | null;
-  }) => Promise<Post>;
-  toggleLike: (postId: string) => void;
-  addComment: (postId: string, content: string) => Promise<void>;
+  }) => Promise<Post | null>;
+  toggleLike: (postId: string) => Promise<boolean>;
+  addComment: (postId: string, content: string) => Promise<Comment | null>;
   likeComment: (postId: string, commentId: string) => void;
-  toggleBookmark: (postId: string) => void;
+  toggleBookmark: (postId: string) => Promise<boolean>;
+  hydrateBookmarks: () => Promise<void>;
   setUser: (user: User) => void;
   loadPosts: () => Promise<void>;
   getComments: (postId: string) => Promise<Comment[]>;
@@ -56,28 +60,56 @@ interface BlogState {
   loadingComments: boolean;
 }
 
-export const useBlogStore = create<BlogState>((set, get) => {
-  let likeDebounceTimer: ReturnType<typeof setTimeout>;
-  let bookmarkDebounceTimer: ReturnType<typeof setTimeout>;
-  let bookmarkedPostsArray: string[] = [];
-
-  const init = async () => {
-    try {
-      const bookmarkedPosts = await AsyncStorage.getItem("bookmarkedPosts");
-      bookmarkedPostsArray = bookmarkedPosts ? JSON.parse(bookmarkedPosts) : [];
-    } catch (error) {
-      console.error("Error loading bookmarked posts:", error);
-      bookmarkedPostsArray = [];
-    }
-  };
-  if (typeof window !== "undefined") {
-    init();
+const readBookmarkedIds = async (): Promise<string[]> => {
+  try {
+    const stored = await AsyncStorage.getItem(BOOKMARKS_STORAGE_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed)
+      ? parsed.filter((id): id is string => typeof id === "string")
+      : [];
+  } catch (error) {
+    console.error("Error loading bookmarked posts:", error);
+    return [];
   }
+};
 
-  const sendLikeToServer = async (postId: string) => {
+const writeBookmarkedIds = async (ids: string[]) => {
+  await AsyncStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify(ids));
+};
+
+const withBookmarkFlags = (posts: Post[], ids: string[]): Post[] => {
+  const bookmarked = new Set(ids);
+  return posts.map((post) => ({
+    ...post,
+    isBookmarked: bookmarked.has(post._id),
+  }));
+};
+
+const withToggledLike = (post: Post, userId: string): Post => {
+  const likes = post.likes ?? [];
+  return {
+    ...post,
+    likes: likes.includes(userId)
+      ? likes.filter((id) => id !== userId)
+      : [...likes, userId],
+  };
+};
+
+interface PendingLike {
+  timer: ReturnType<typeof setTimeout>;
+  taps: number;
+  resolvers: ((ok: boolean) => void)[];
+}
+
+export const useBlogStore = create<BlogState>((set, get) => {
+  const pendingLikes = new Map<string, PendingLike>();
+  let commentLikeDebounceTimer: ReturnType<typeof setTimeout>;
+
+  const sendLikeToServer = async (postId: string): Promise<boolean> => {
     try {
       const accessToken = await tokenCache?.getToken("accessToken");
-      if (!accessToken) return;
+      if (!accessToken) return false;
 
       const response = await fetch(`${API_URL}/post/${postId}/like`, {
         method: "POST",
@@ -89,43 +121,12 @@ export const useBlogStore = create<BlogState>((set, get) => {
 
       if (!response.ok) {
         console.error("Failed to update like status:", await response.json());
-        return;
+        return false;
       }
+      return true;
     } catch (error) {
       console.error("Error in sendLikeToServer:", error);
-    }
-  };
-
-  const sendBookmarkToServer = async (postId: string) => {
-    // not sending to server i dont think its needed lmao
-    try {
-      const bookmarkedPosts = await AsyncStorage.getItem("bookmarkedPosts");
-      bookmarkedPostsArray = bookmarkedPosts ? JSON.parse(bookmarkedPosts) : [];
-
-      if (bookmarkedPostsArray.includes(postId)) {
-        bookmarkedPostsArray = bookmarkedPostsArray.filter(
-          (id: string) => id !== postId,
-        );
-      } else {
-        bookmarkedPostsArray.push(postId);
-      }
-
-      await AsyncStorage.setItem(
-        "bookmarkedPosts",
-        JSON.stringify(bookmarkedPostsArray),
-      );
-
-      console.log("bookmarkedPostsArray", bookmarkedPostsArray);
-
-      set((state) => ({
-        posts: state.posts.map((post) =>
-          post._id === postId
-            ? { ...post, isBookmarked: !post.isBookmarked }
-            : post,
-        ),
-      }));
-    } catch (error) {
-      console.error("Error in sendBookmarkToServer:", error);
+      return false;
     }
   };
 
@@ -171,12 +172,22 @@ export const useBlogStore = create<BlogState>((set, get) => {
         set({ loadingPosts: true });
         const response = await fetch(`${API_URL}/post`);
         const data = await response.json();
-        set({ posts: data.blogs });
+        const blogs: Post[] = Array.isArray(data?.blogs) ? data.blogs : [];
+        const bookmarkedIds = await readBookmarkedIds();
+        set({ posts: withBookmarkFlags(blogs, bookmarkedIds) });
       } catch (e) {
         console.log(e);
       } finally {
         set({ loadingPosts: false });
       }
+    },
+
+    // Re-reads bookmarks from storage and applies them to the loaded posts.
+    hydrateBookmarks: async () => {
+      const bookmarkedIds = await readBookmarkedIds();
+      set((state) => ({
+        posts: withBookmarkFlags(state.posts, bookmarkedIds),
+      }));
     },
 
     getPostById: async (id) => {
@@ -185,6 +196,10 @@ export const useBlogStore = create<BlogState>((set, get) => {
         const response = await fetch(`${API_URL}/post/${id}`);
         const data = await response.json();
         post = data.blog;
+        if (post) {
+          const bookmarkedIds = await readBookmarkedIds();
+          post = { ...post, isBookmarked: bookmarkedIds.includes(post._id) };
+        }
       }
       return post;
     },
@@ -192,7 +207,7 @@ export const useBlogStore = create<BlogState>((set, get) => {
     addPost: async (postData) => {
       try {
         set({ sendingPost: true });
-        const accessToken = await AsyncStorage.getItem("accessToken");
+        const accessToken = await tokenCache?.getToken("accessToken");
         if (!accessToken) return null;
 
         const formData = new FormData();
@@ -224,11 +239,12 @@ export const useBlogStore = create<BlogState>((set, get) => {
           // throw new Error(`Failed to add post: ${response.statusText}`);
         }
 
-        const newPost = await response.json();
+        const newPostResponse = await response.json();
+        // Server responds with `{ message, data: post }`.
+        const newPost: Post = newPostResponse.data ?? newPostResponse;
         set((state) => ({
-          posts: [newPost.data, ...state.posts],
+          posts: [newPost, ...state.posts],
         }));
-        console.log("newPost added", newPost);
         return newPost;
       } catch (error) {
         console.error("Error in addPost:", error);
@@ -239,42 +255,69 @@ export const useBlogStore = create<BlogState>((set, get) => {
     },
 
     // like post
+    // Optimistically flips the like, then reconciles with the server. Repeated
+    // taps are coalesced: an even number of taps means the server state should
+    // not change, an odd one means a single toggle request is sent.
     toggleLike: (postId: string) => {
-      clearTimeout(likeDebounceTimer);
-      likeDebounceTimer = setTimeout(() => {
-        sendLikeToServer(postId);
-      }, 500);
-      set((state) => {
-        const updatedPosts = state.posts.map((post) => {
-          if (post._id === postId) {
-            const userId = get().currentUser?._id;
-            if (!userId) return post;
-            const isLiked = post.likes?.includes(userId);
-            return {
-              ...post,
-              likes: isLiked
-                ? post.likes?.filter((id) => id !== userId)
-                : [...(post.likes || []), userId],
-            };
-          }
-          return post;
-        });
-        return { posts: updatedPosts };
+      const userId = get().currentUser?._id;
+      if (!userId) return Promise.resolve(false);
+
+      set((state) => ({
+        posts: state.posts.map((post) =>
+          post._id === postId ? withToggledLike(post, userId) : post,
+        ),
+      }));
+
+      const existing = pendingLikes.get(postId);
+      if (existing) clearTimeout(existing.timer);
+
+      const taps = (existing?.taps ?? 0) + 1;
+      const resolvers = existing?.resolvers ?? [];
+
+      const promise = new Promise<boolean>((resolve) => {
+        resolvers.push(resolve);
       });
+
+      const timer = setTimeout(async () => {
+        pendingLikes.delete(postId);
+        const shouldToggle = taps % 2 === 1;
+        let ok = true;
+
+        if (shouldToggle) {
+          ok = await sendLikeToServer(postId);
+          if (!ok) {
+            const currentUserId = get().currentUser?._id;
+            if (currentUserId) {
+              set((state) => ({
+                posts: state.posts.map((post) =>
+                  post._id === postId
+                    ? withToggledLike(post, currentUserId)
+                    : post,
+                ),
+              }));
+            }
+          }
+        }
+
+        resolvers.forEach((resolve) => resolve(ok));
+      }, 500);
+
+      pendingLikes.set(postId, { timer, taps, resolvers });
+      return promise;
     },
 
     // like comment
     likeComment: (postId: string, commentId: string) => {
-      clearTimeout(likeDebounceTimer);
-      likeDebounceTimer = setTimeout(() => {
+      clearTimeout(commentLikeDebounceTimer);
+      commentLikeDebounceTimer = setTimeout(() => {
         sendCommentLikeToServer(postId, commentId);
       }, 500);
     },
 
     addComment: async (postId, content) => {
       try {
-        const accessToken = await AsyncStorage.getItem("accessToken");
-        if (!accessToken) return;
+        const accessToken = await tokenCache?.getToken("accessToken");
+        if (!accessToken) return null;
 
         const response = await fetch(`${API_URL}/post/${postId}/comment`, {
           method: "POST",
@@ -289,34 +332,63 @@ export const useBlogStore = create<BlogState>((set, get) => {
           throw new Error(`Failed to add comment: ${response.statusText}`);
         }
 
-        const newComment = await response.json();
+        const newComment = (await response.json()) as Comment;
         set((state) => ({
           posts: state.posts.map((post) =>
             post._id === postId
-              ? { ...post, comments: [...post.comments, newComment] }
+              ? {
+                  ...post,
+                  comments: [...(post.comments ?? []), newComment._id],
+                }
               : post,
           ),
         }));
+        return newComment;
       } catch (error) {
         console.error("Error in addComment:", error);
         throw error;
       }
     },
 
-    toggleBookmark: (postId) => {
-      clearTimeout(bookmarkDebounceTimer);
-      bookmarkDebounceTimer = setTimeout(() => {
-        sendBookmarkToServer(postId);
-      }, 500);
+    // Bookmarks are device-local, so this writes straight through to storage
+    // and mirrors the result on the matching post.
+    toggleBookmark: async (postId) => {
+      const bookmarkedIds = await readBookmarkedIds();
+      const isBookmarked = !bookmarkedIds.includes(postId);
+      const nextIds = isBookmarked
+        ? [...bookmarkedIds, postId]
+        : bookmarkedIds.filter((id) => id !== postId);
+      const previous = get().posts.find(
+        (post) => post._id === postId,
+      )?.isBookmarked;
+
+      set((state) => ({
+        posts: state.posts.map((post) =>
+          post._id === postId ? { ...post, isBookmarked } : post,
+        ),
+      }));
+
+      try {
+        await writeBookmarkedIds(nextIds);
+        return isBookmarked;
+      } catch (error) {
+        console.error("Error in toggleBookmark:", error);
+        const restored = previous ?? !isBookmarked;
+        set((state) => ({
+          posts: state.posts.map((post) =>
+            post._id === postId ? { ...post, isBookmarked: restored } : post,
+          ),
+        }));
+        return restored;
+      }
     },
 
     getComments: async (postId: string) => {
+      set({ loadingComments: true });
       try {
-        set({ loadingComments: true });
         const response = await fetch(`${API_URL}/post/${postId}/comments`);
         const data = await response.json();
-        set({ loadingComments: false });
-        return data as Comment[];
+        return Array.isArray(data) ? (data as Comment[]) : [];
       } catch (error) {
         console.error("Error in getComments:", error);
         return [] as Comment[];

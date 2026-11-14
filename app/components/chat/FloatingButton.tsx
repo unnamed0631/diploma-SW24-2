@@ -24,7 +24,7 @@ export default function FloatingButton() {
 
   const translateX = useSharedValue(screenWidth - BUTTON_SIZE - PADDING);
   const translateY = useSharedValue(
-    screenHeight - BUTTON_SIZE - SAFE_BOTTOM_OFFSET - PADDING - 150
+    screenHeight - BUTTON_SIZE - SAFE_BOTTOM_OFFSET - PADDING - 150,
   );
 
   // Shared values to store the starting position of the gesture
@@ -88,7 +88,7 @@ export default function FloatingButton() {
       <Animated.View
         style={[animatedStyle, styles.shadow]}
         className={`
-    absolute z-50 aspect-square w-[${BUTTON_SIZE}px] bg-white elevation-md rounded-full overflow-hidden`}
+    absolute z-50 aspect-square w-[${BUTTON_SIZE}px] bg-card elevation-md rounded-full overflow-hidden`}
       >
         <LinearGradient
           colors={["#8A24FF", "#BB80FF"]}

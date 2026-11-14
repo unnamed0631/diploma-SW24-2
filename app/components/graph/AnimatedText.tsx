@@ -10,7 +10,7 @@ type Props = {
 };
 
 const AnimatedText = ({ selectedValue, font }: Props) => {
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
   // const {width} = useWindowDimensions();
   const MARGIN_VERTICAL = 0;
 
@@ -30,7 +30,7 @@ const AnimatedText = ({ selectedValue, font }: Props) => {
       <Text
         text={animatedText}
         font={font}
-        color={theme === "dark" ? "#fff" : "#000"}
+        color={colors.foreground}
         // x={textX}
         y={fontSize!.height + MARGIN_VERTICAL / 2}
       />

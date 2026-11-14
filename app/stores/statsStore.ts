@@ -1,6 +1,53 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 
+/**
+ * One row of daily stats history. Kept client-side (rolling window) so the
+ * profile chart and the stats date strip have something real to show without a
+ * backend round-trip.
+ */
+export interface DaySnapshot {
+  /** Local calendar day, `YYYY-MM-DD`. */
+  date: string;
+  steps: number;
+  water: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  sleep: number;
+  rdc: number;
+}
+
+/** How many days of history to keep on the device. */
+export const HISTORY_DAYS = 30;
+
+/** `YYYY-MM-DD` in the device's local timezone (not UTC). */
+export const toDateKey = (date: Date = new Date()): string => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * Returns exactly `days` entries, oldest first, ending today. Days without a
+ * recorded snapshot are `null` so callers can show gaps instead of fake zeros.
+ */
+export const getSnapshotsForLastDays = (
+  history: DaySnapshot[],
+  days = 7,
+): (DaySnapshot | null)[] => {
+  const byDate = new Map(history.map((entry) => [entry.date, entry]));
+  const today = new Date();
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - (days - 1 - index));
+    return byDate.get(toDateKey(date)) ?? null;
+  });
+};
+
 export interface StatsData {
   steps: number;
   water: number;
@@ -38,13 +85,15 @@ export interface StatsData {
   lunchEaten: boolean;
   dinnerEaten: boolean;
   snackEaten: boolean;
+  /** Rolling daily snapshots, oldest first. */
+  history: DaySnapshot[];
   lastUpdated: string | null;
 }
 
 export interface StatsState extends StatsData {
   setField: <K extends keyof StatsData>(
     key: K,
-    value: StatsData[K]
+    value: StatsData[K],
   ) => Promise<void>;
   load: () => Promise<void>;
   _hasHydrated: boolean;
@@ -55,12 +104,22 @@ export interface StatsState extends StatsData {
     carbs: number;
     fat: number;
   }) => Promise<void>;
+  /** Writes/updates today's entry in `history` from the current values. */
+  recordSnapshot: () => void;
 }
 
 const ASYNC_STORAGE_KEY = "appStatsStore";
 
+// `dailyFoods` values come from Gemini and may be missing or stored as strings,
+// so `Number(undefined)` must never leak a NaN into the totals.
+const toFiniteNumber = (value: unknown): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 const getPersistentState = (state: StatsState): StatsData => {
-  const { setField, load, _hasHydrated, ...persistentData } = state;
+  const { setField, load, recordSnapshot, _hasHydrated, ...persistentData } =
+    state;
   return persistentData;
 };
 
@@ -93,87 +152,102 @@ export const useStatsStore = create<StatsState>((set, get) => ({
   dinnerEaten: false,
   snackEaten: false,
 
+  history: [],
+
   lastUpdated: null as string | null,
 
   _hasHydrated: false,
 
   calculateStatsFromFoods: () => {
-    console.log("🍎 calculating stats from foods");
     const { dailyFoods, breakfastEaten, lunchEaten, dinnerEaten, snackEaten } =
       get();
-    let currentCalories = 0;
-    let currentProtein = 0;
-    let currentCarbs = 0;
-    let currentFat = 0;
 
-    // Calculate totals only for eaten meals
-    if (breakfastEaten && dailyFoods.breakfast) {
-      const { calories, protein, carbs, fat } = dailyFoods.breakfast;
-      currentCalories += Number(calories);
-      currentProtein += Number(protein);
-      currentCarbs += Number(carbs);
-      currentFat += Number(fat);
+    // Pure recomputation of the macro totals for the meals marked as eaten.
+    // `totalCalories` is deliberately left alone: it only accumulates in
+    // `addScannedFood`, otherwise every meal toggle would inflate it.
+    const eatenMeals: [keyof typeof dailyFoods, boolean][] = [
+      ["breakfast", breakfastEaten],
+      ["lunch", lunchEaten],
+      ["dinner", dinnerEaten],
+      ["snack", snackEaten],
+    ];
+
+    let calories = 0;
+    let protein = 0;
+    let carbs = 0;
+    let fat = 0;
+
+    for (const [meal, eaten] of eatenMeals) {
+      const food = dailyFoods[meal];
+      if (!eaten || !food) {
+        continue;
+      }
+      calories += toFiniteNumber(food.calories);
+      protein += toFiniteNumber(food.protein);
+      carbs += toFiniteNumber(food.carbs);
+      fat += toFiniteNumber(food.fat);
     }
-
-    if (lunchEaten && dailyFoods.lunch) {
-      const { calories, protein, carbs, fat } = dailyFoods.lunch;
-      currentCalories += Number(calories);
-      currentProtein += Number(protein);
-      currentCarbs += Number(carbs);
-      currentFat += Number(fat);
-    }
-
-    if (dinnerEaten && dailyFoods.dinner) {
-      const { calories, protein, carbs, fat } = dailyFoods.dinner;
-      currentCalories += Number(calories);
-      currentProtein += Number(protein);
-      currentCarbs += Number(carbs);
-      currentFat += Number(fat);
-    }
-
-    if (snackEaten && dailyFoods.snack) {
-      const { calories, protein, carbs, fat } = dailyFoods.snack;
-      currentCalories += Number(calories);
-      currentProtein += Number(protein);
-      currentCarbs += Number(carbs);
-      currentFat += Number(fat);
-    }
-
-    // Add any manually added food from addScannedFood
-    // const manuallyAddedCalories = get().calories - currentCalories;
-    console.log("🍎 currentCalories", currentCalories, Number(currentCalories));
 
     set((state) => ({
       ...state,
-      calories: currentCalories,
-      protein: currentProtein,
-      carbs: currentCarbs,
-      fat: currentFat,
-      totalCalories: state.totalCalories + currentCalories,
+      calories,
+      protein,
+      carbs,
+      fat,
     }));
   },
 
+  recordSnapshot: () => {
+    const state = get();
+    const date = toDateKey();
+    const snapshot: DaySnapshot = {
+      date,
+      steps: toFiniteNumber(state.steps),
+      water: toFiniteNumber(state.water),
+      calories: toFiniteNumber(state.calories),
+      protein: toFiniteNumber(state.protein),
+      carbs: toFiniteNumber(state.carbs),
+      fat: toFiniteNumber(state.fat),
+      sleep: toFiniteNumber(state.sleep),
+      rdc: toFiniteNumber(state.rdc),
+    };
+
+    set((current) => {
+      const withoutToday = current.history.filter(
+        (entry) => entry.date !== date,
+      );
+      return {
+        history: [...withoutToday, snapshot]
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .slice(-HISTORY_DAYS),
+      };
+    });
+  },
+
   addScannedFood: async (food) => {
+    const addedCalories = toFiniteNumber(food.calories);
     set((state) => ({
       ...state,
-      calories: state.calories + Number(food.calories),
-      protein: state.protein + Number(food.protein),
-      carbs: state.carbs + Number(food.carbs),
-      fat: state.fat + Number(food.fat),
-      totalCalories: state.totalCalories + Number(food.calories),
+      calories: state.calories + addedCalories,
+      protein: state.protein + toFiniteNumber(food.protein),
+      carbs: state.carbs + toFiniteNumber(food.carbs),
+      fat: state.fat + toFiniteNumber(food.fat),
+      // Only place where the running total grows.
+      totalCalories: state.totalCalories + addedCalories,
       lastUpdated: new Date().toISOString(),
     }));
+    get().recordSnapshot();
     try {
       const currentState = get();
       const dataToPersist = getPersistentState(currentState);
       await AsyncStorage.setItem(
         ASYNC_STORAGE_KEY,
-        JSON.stringify(dataToPersist)
+        JSON.stringify(dataToPersist),
       );
     } catch (error) {
       console.error(
         `StatsStore: Error saving field after adding scanned food to AsyncStorage:`,
-        error
+        error,
       );
     }
   },
@@ -182,11 +256,20 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     if (get()._hasHydrated) {
       return;
     }
+
+    const prune = (history: DaySnapshot[]) =>
+      [...history]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-HISTORY_DAYS);
+
     try {
       const storedStatsJson = await AsyncStorage.getItem(ASYNC_STORAGE_KEY);
       if (storedStatsJson) {
         const storedStats = JSON.parse(storedStatsJson) as Partial<StatsData>;
         const lastUpdated = storedStats.lastUpdated;
+        const storedHistory = Array.isArray(storedStats.history)
+          ? storedStats.history
+          : [];
 
         // Check if the stored stats are from today
         if (lastUpdated) {
@@ -195,9 +278,34 @@ export const useStatsStore = create<StatsState>((set, get) => ({
 
           if (storedDate.toDateString() === today.toDateString()) {
             // Use stored stats if they're from today
-            set((state) => ({ ...state, ...storedStats, _hasHydrated: true }));
+            set((state) => ({
+              ...state,
+              ...storedStats,
+              history: prune(storedHistory),
+              _hasHydrated: true,
+            }));
+            get().recordSnapshot();
           } else {
-            // Reset stats if they're from a previous day
+            // Rolling over to a new day: keep yesterday as a history row before
+            // resetting today's counters (covers installs from before history
+            // existed, where no snapshot was written).
+            const yesterdayKey = toDateKey(storedDate);
+            const yesterdaySnapshot: DaySnapshot = {
+              date: yesterdayKey,
+              steps: toFiniteNumber(storedStats.steps),
+              water: toFiniteNumber(storedStats.water),
+              calories: toFiniteNumber(storedStats.calories),
+              protein: toFiniteNumber(storedStats.protein),
+              carbs: toFiniteNumber(storedStats.carbs),
+              fat: toFiniteNumber(storedStats.fat),
+              sleep: toFiniteNumber(storedStats.sleep),
+              rdc: toFiniteNumber(storedStats.rdc),
+            };
+            const history = prune([
+              ...storedHistory.filter((entry) => entry.date !== yesterdayKey),
+              yesterdaySnapshot,
+            ]);
+
             set((state) => ({
               ...state,
               steps: 0,
@@ -212,12 +320,18 @@ export const useStatsStore = create<StatsState>((set, get) => ({
               lunchEaten: false,
               dinnerEaten: false,
               snackEaten: false,
+              history,
               lastUpdated: new Date().toISOString(),
               _hasHydrated: true,
             }));
           }
         } else {
-          set((state) => ({ ...state, ...storedStats, _hasHydrated: true }));
+          set((state) => ({
+            ...state,
+            ...storedStats,
+            history: prune(storedHistory),
+            _hasHydrated: true,
+          }));
         }
       } else {
         set({ _hasHydrated: true, lastUpdated: new Date().toISOString() });
@@ -225,7 +339,7 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     } catch (error) {
       console.error(
         "StatsStore: Error loading stats from AsyncStorage:",
-        error
+        error,
       );
       set({ _hasHydrated: true, lastUpdated: new Date().toISOString() });
     }
@@ -248,18 +362,21 @@ export const useStatsStore = create<StatsState>((set, get) => ({
       get().calculateStatsFromFoods();
     }
 
+    // Keep today's history row in sync with whatever just changed.
+    get().recordSnapshot();
+
     try {
       const currentState = get();
       const dataToPersist = getPersistentState(currentState);
 
       await AsyncStorage.setItem(
         ASYNC_STORAGE_KEY,
-        JSON.stringify(dataToPersist)
+        JSON.stringify(dataToPersist),
       );
     } catch (error) {
       console.error(
         `StatsStore: Error saving field '${key}' to AsyncStorage:`,
-        error
+        error,
       );
     }
   },

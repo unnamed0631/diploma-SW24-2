@@ -1,12 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
 import { IUser } from "@/models/user";
+import { isAiConfigured } from "@/config/env";
+import { AiUnavailableError } from "@/services/aiErrors";
 import fs from "fs";
 
 const exercises: IExercise[] = JSON.parse(
   fs.readFileSync("./src/services/exercises.json", "utf8"),
 );
 
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const genAI = isAiConfigured()
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string })
+  : null;
 
 interface IExercise {
   id: number;
@@ -22,6 +26,10 @@ interface IExercise {
 }
 
 const genExercisePlan = async (user: IUser) => {
+  if (!genAI) {
+    throw new AiUnavailableError("GEMINI_API_KEY is not configured");
+  }
+
   console.time("genExercisePlan");
   try {
     const exerciseNames = exercises.map((ex) => ex.name).join(", ");
@@ -125,6 +133,7 @@ const genExercisePlan = async (user: IUser) => {
       "Error generating exercise plan:",
       error.message ? error.message : error,
     );
+    if (error instanceof AiUnavailableError) throw error;
     return null;
   } finally {
     console.timeEnd("genExercisePlan");

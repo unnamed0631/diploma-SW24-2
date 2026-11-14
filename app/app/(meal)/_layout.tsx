@@ -13,11 +13,14 @@ export default function MealLayout() {
         animation: "flip",
       }}
     >
+      <Stack.Screen name="asuult" />
       <Stack.Screen name="asuult2" />
       <Stack.Screen name="asuult3" />
       <Stack.Screen name="asuult4" />
       <Stack.Screen name="asuult5" />
       <Stack.Screen name="nemeh" />
+      <Stack.Screen name="scan" />
+      <Stack.Screen name="imageScan" />
     </Stack>
   );
 }

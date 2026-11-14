@@ -8,7 +8,6 @@ import {
 } from "react";
 import { login } from "@/lib/data";
 import * as WebBrowser from "expo-web-browser";
-import * as AppleAuthentication from "expo-apple-authentication";
 import {
   AuthError,
   AuthRequestConfig,
@@ -18,9 +17,7 @@ import {
 } from "expo-auth-session";
 import * as jose from "jose";
 import { tokenCache } from "@/utils/cache";
-import { BASE_URL, API_URL } from "@/utils/constants";
-import { handleAppleAuthError } from "@/utils/handleAppleError";
-import { randomUUID } from "expo-crypto";
+import { API_URL } from "@/utils/constants";
 
 import { useStatsStore } from "@/stores/statsStore";
 
@@ -34,7 +31,6 @@ interface AuthContextType {
   logout: () => Promise<void>;
   register: (registerForm: registerFormType) => Promise<void>;
   signInWithApple: () => void;
-  signInWithAppleWebBrowser: () => Promise<void>;
   isLoading: boolean;
   error: AuthError | null;
   needsRegistration: { visible: boolean; data: any };
@@ -60,7 +56,6 @@ export const AuthContext = createContext<AuthContextType>({
   logout: async () => {},
   register: async () => {},
   signInWithApple: () => {},
-  signInWithAppleWebBrowser: () => Promise.resolve(),
   isLoading: true,
   error: null,
   needsRegistration: { visible: false, data: null },
@@ -79,20 +74,9 @@ const config: AuthRequestConfig = {
   redirectUri: makeRedirectUri(),
 };
 
-const appleConfig: AuthRequestConfig = {
-  clientId: "apple",
-  scopes: ["name", "email"],
-  redirectUri: makeRedirectUri(),
-};
-
 const discovery: DiscoveryDocument = {
   authorizationEndpoint: `https://server.tengis.space/auth/authorize`,
   tokenEndpoint: `https://server.tengis.space/auth/token`,
-};
-
-const appleDiscovery: DiscoveryDocument = {
-  authorizationEndpoint: `${BASE_URL}/api/auth/apple/authorize`,
-  tokenEndpoint: `${BASE_URL}/api/auth/apple/token`,
 };
 
 WebBrowser.maybeCompleteAuthSession();
@@ -114,10 +98,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [request, response, promptAsync] = useAuthRequest(config, discovery);
   const refreshInProgressRef = useRef(false);
   const didCheckLoginRef = useRef(false);
-  const [appleRequest, appleResponse, promptAppleAsync] = useAuthRequest(
-    appleConfig,
-    appleDiscovery,
-  );
   const { setField } = useStatsStore();
 
   const setNeedsRegistration = useCallback(
@@ -287,11 +267,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }, [response, handleNativeTokens, loadGoals]);
 
-  const handleAppleResponse = useCallback(async () => {
-    // Current implementation is largely commented out, if restored, ensure useCallback dependencies.
-    // For now, assuming it doesn't change AuthProvider state directly in a way that needs memoization beyond this.
-  }, []);
-
   const loginWithGoogle = useCallback(async () => {
     _setNeedsRegistration({ visible: false, data: null });
     try {
@@ -366,61 +341,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [handleNativeTokens, loadGoals],
   );
 
-  const signInWithAppleWebBrowser = useCallback(async (): Promise<void> => {
-    try {
-      if (!appleRequest) {
-        return;
-      }
-      await promptAppleAsync();
-    } catch (e) {
-      console.log("Apple web sign in error:", e);
-    }
-  }, [appleRequest, promptAppleAsync]);
-
+  // TODO: Apple sign-in is not implemented server-side yet (there is no
+  // /auth/apple token-exchange route and no Apple credentials configured).
+  // Fail fast instead of POSTing to a non-existent endpoint; wire this up to
+  // the native-token route once that exists.
   const signInWithApple = useCallback(async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const rawNonce = randomUUID();
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-        nonce: rawNonce,
-      });
-      const appleAuthResponse = await fetch(
-        `${BASE_URL}/api/auth/apple/apple-native`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            identityToken: credential.identityToken,
-            rawNonce,
-            givenName: credential.fullName?.givenName,
-            familyName: credential.fullName?.familyName,
-            email: credential.email,
-          }),
-        },
-      );
-      if (!appleAuthResponse.ok) {
-        console.error(
-          "Apple native auth failed:",
-          await appleAuthResponse.json(),
-        );
-        throw new Error("Apple native authentication failed");
-      }
-      const tokens = await appleAuthResponse.json();
-      if (tokens.user && tokens.user.dailyGoals)
-        await loadGoals(tokens.user.dailyGoals as DailyGoals);
-      await handleNativeTokens(tokens);
-    } catch (e) {
-      console.error("Apple sign in error:", e);
-      handleAppleAuthError(e);
-      setError(e as AuthError);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [handleNativeTokens, loadGoals]);
+    const message =
+      "Apple sign-in is not available yet. Please use Google or email instead.";
+    console.warn(`AuthProvider: ${message}`);
+    alert(message);
+  }, []);
 
   const updateUser = useCallback(
     async (userDataToUpdate: Partial<User>): Promise<boolean> => {
@@ -580,28 +510,47 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [accessToken]);
 
   const incrementStreak = useCallback(async (): Promise<boolean> => {
-    if (!user) {
-      console.log("AuthProvider: User not available to increment streak.");
+    if (!accessToken) {
+      console.log(
+        "AuthProvider: Cannot increment streak without an access token.",
+      );
       return false;
     }
-    const newStreak = (user.streak || 0) + 1;
-    const currentHighestStreak = user.highestStreak || 0;
-    const updatePayload: Partial<User> = { streak: newStreak };
-    if (newStreak > currentHighestStreak) {
-      updatePayload.highestStreak = newStreak;
-    }
-    const success = await updateUser(updatePayload);
-    if (success) {
-      console.log(
-        `AuthProvider: Streak updated. New streak: ${newStreak}, New Highest: ${
-          updatePayload.highestStreak || currentHighestStreak
-        }`,
+    try {
+      const res = await fetch(`${API_URL}/streak/increment`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!res.ok) {
+        console.log("AuthProvider: Failed to increment streak:", res.status);
+        return false;
+      }
+      const data = (await res.json()) as {
+        streak?: number;
+        highestStreak?: number;
+        alreadyCompleted?: boolean;
+      };
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              streak: data.streak ?? prev.streak,
+              highestStreak: data.highestStreak ?? prev.highestStreak,
+            }
+          : prev,
       );
-    } else {
-      console.log(`AuthProvider: Failed to update streak.`);
+      console.log(
+        `AuthProvider: Streak synced from server. Current: ${data.streak}, Highest: ${data.highestStreak}, alreadyCompleted: ${data.alreadyCompleted}`,
+      );
+      return true;
+    } catch (e) {
+      console.log("AuthProvider: Error incrementing streak:", e);
+      return false;
     }
-    return success;
-  }, [user, updateUser]);
+  }, [accessToken]);
 
   // login
   useEffect(() => {
@@ -699,12 +648,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
     })();
   }, [response, handleResponse]);
 
-  useEffect(() => {
-    if (appleResponse) {
-      handleAppleResponse();
-    }
-  }, [appleResponse, handleAppleResponse]);
-
   // interval to refresh user 10min
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval>;
@@ -736,7 +679,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
         logout: signOut,
         register: registerUser,
         signInWithApple,
-        signInWithAppleWebBrowser,
         isLoading,
         error,
         needsRegistration,

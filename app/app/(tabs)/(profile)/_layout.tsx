@@ -5,13 +5,13 @@ import { use } from "react";
 const RootLayout = () => {
   const { user } = use(AuthContext);
   const loggedIn = !!user;
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
   return (
     <Stack
       screenOptions={{
         headerShown: false,
         contentStyle: {
-          backgroundColor: theme === "light" ? "white" : "#111827",
+          backgroundColor: colors.background,
         },
       }}
     >

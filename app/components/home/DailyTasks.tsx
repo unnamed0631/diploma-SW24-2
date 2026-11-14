@@ -25,7 +25,7 @@ configureReanimatedLogger({
 
 export default function DailyTasks() {
   const { t, i18n } = useTranslation();
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
   const { user, incrementStreak } = useContext(AuthContext);
 
   const { tasks, isLoading, initializeTasks } = useDailyTaskStore();
@@ -121,10 +121,7 @@ export default function DailyTasks() {
   if (isLoading && tasks.length === 0) {
     return (
       <View className="flex-1 justify-center items-center">
-        <ActivityIndicator
-          size="large"
-          color={theme === "dark" ? "#FFFFFF" : "#000000"}
-        />
+        <ActivityIndicator size="large" color={colors.foreground} />
       </View>
     );
   }
@@ -132,10 +129,8 @@ export default function DailyTasks() {
   return (
     <View className="px-1 mt-6 pb-40">
       <View className="flex-row justify-between mb-4 items-center">
-        <ThemeText className="text-xl font-bold dark:text-white">
-          {t("home.task")}
-        </ThemeText>
-        <Text className="text-sm text-gray-500 dark:text-gray-400">
+        <ThemeText className="text-xl font-bold">{t("home.task")}</ThemeText>
+        <Text className="text-sm text-subtle">
           {t("dailyTasks.completedFraction", {
             completedCount,
             totalTasks: tasks.length,
@@ -149,8 +144,8 @@ export default function DailyTasks() {
   p-4 rounded-3xl flex-col border-1
   ${
     task.completed
-      ? "border-blue-400 border border-l-[3px] border-gray-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-800/20"
-      : "border-gray-200 border border-l-[3px] dark:border-zinc-700 bg-white dark:bg-zinc-600/20"
+      ? "border-primary border border-l-[3px] bg-primary-soft"
+      : "border-border border border-l-[3px] bg-card"
   }
 `;
           return (
@@ -166,41 +161,38 @@ export default function DailyTasks() {
               <View className="flex-row items-center justify-between">
                 <View>
                   <View className="flex-row items-center space-x-2 mb-1 gap-2">
-                    <Text className="text-sm font-semibold text-black dark:text-white">
+                    <Text className="text-sm font-semibold text-foreground">
                       {task.title}
                     </Text>
                     <Text className="text-xl">{task.icon}</Text>
                   </View>
-                  <Text className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  <Text className="text-xs text-subtle mb-2">
                     {task.target}
                   </Text>
 
-                  <View className="h-1.5 bg-gray-200 dark:bg-zinc-600 rounded-full mb-2 w-full">
+                  <View className="h-1.5 bg-muted rounded-full mb-2 w-full">
                     <View
                       className={`h-full rounded-full ${
                         task.completed
-                          ? "bg-blue-500"
+                          ? "bg-primary"
                           : "bg-cyan-200 dark:bg-cyan-300"
                       }`}
                       style={{ width: `${(task.current / task.max) * 100}%` }}
                     />
                   </View>
 
-                  <Text className="text-xs text-gray-500 dark:text-gray-400">
+                  <Text className="text-xs text-subtle">
                     {task.current}/{task.max} {task.unit}
                   </Text>
                 </View>
 
                 <View className="items-center justify-center">
                   {task.completed ? (
-                    <View className="rounded-full p-1 bg-blue-100 dark:bg-blue-600/40">
-                      <CheckCircle2
-                        size={18}
-                        color={theme === "dark" ? "#5FBFFF" : "#136CF1"}
-                      />
+                    <View className="rounded-full p-1 bg-primary-soft">
+                      <CheckCircle2 size={18} color={colors.primary} />
                     </View>
                   ) : (
-                    <Circle size={18} color="#d1d5db" />
+                    <Circle size={18} color={colors.subtle} />
                   )}
                 </View>
               </View>

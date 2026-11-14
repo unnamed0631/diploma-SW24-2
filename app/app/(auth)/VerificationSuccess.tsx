@@ -7,7 +7,7 @@ const VerificationSuccess = () => {
   const router = useRouter();
 
   return (
-    <View className="flex-1 items-center justify-center bg-white dark:bg-black px-6 pt-15">
+    <View className="flex-1 items-center justify-center bg-background px-6 pt-15">
       <BlurEllipse />
       <Image
         source={require("@/assets/img/verified-badge.png")}
@@ -15,19 +15,19 @@ const VerificationSuccess = () => {
         contentFit="contain"
       />
 
-      <Text className="text-2xl font-bold text-black dark:text-white mt-6">
+      <Text className="text-2xl font-bold text-foreground mt-6">
         You are Verified!
       </Text>
 
-      <Text className="text-base text-gray-500 dark:text-gray-300 mt-2 mb-6 text-center">
+      <Text className="text-base text-subtle mt-2 mb-6 text-center">
         Congratulations to you. You are now Verified! Kindly proceed to log in
       </Text>
 
       <TouchableOpacity
         onPress={() => router.push("/(auth)/login")}
-        className="bg-blue-600 w-full py-4 rounded-md items-center"
+        className="bg-primary w-full py-4 rounded-md items-center"
       >
-        <Text className="text-white font-bold">Continue</Text>
+        <Text className="text-primary-foreground font-bold">Continue</Text>
       </TouchableOpacity>
     </View>
   );

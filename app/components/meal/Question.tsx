@@ -9,9 +9,8 @@ interface QuestionProps {
 }
 
 export default function Question({ title, icon }: QuestionProps) {
-  const { theme } = useAppTheme();
-  const isDarkMode = theme === "dark";
-  const textColor = isDarkMode ? "#ffffff" : "#000000";
+  const { colors } = useAppTheme();
+  const textColor = colors.foreground;
 
   return (
     <View style={styles.container}>

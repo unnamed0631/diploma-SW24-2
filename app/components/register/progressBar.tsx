@@ -3,6 +3,7 @@ import { useNavigation, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import { Button, Icon } from "react-native-paper";
+import { useAppTheme } from "@/lib/theme";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -15,6 +16,7 @@ export default function ProgressBar() {
   const router = useRouter();
   const navigaton = useNavigation();
   const maxStep = 8;
+  const { colors } = useAppTheme();
   const progressValue = useSharedValue(0);
 
   useEffect(() => {
@@ -41,19 +43,23 @@ export default function ProgressBar() {
       <Button
         className="top-0 left-0"
         mode="text"
-        textColor="white"
+        textColor={colors.primaryForeground}
         rippleColor={"#FFf00020"}
         onPress={handleBack}
       >
-        <Icon source="chevron-left" size={24} color="white" />
+        <Icon
+          source="chevron-left"
+          size={24}
+          color={colors.primaryForeground}
+        />
       </Button>
-      <View className="flex-1 h-6 bg-white/80 rounded-full p-0.5 overflow-hidden relative">
+      <View className="flex-1 h-6 bg-muted/80 rounded-full p-0.5 overflow-hidden relative">
         <View className="flex-1">
           <Animated.View
             style={[
               animatedStyle,
               {
-                backgroundColor: "#3b82f6",
+                backgroundColor: colors.primary,
                 borderRadius: 999,
                 position: "absolute",
                 inset: 0,

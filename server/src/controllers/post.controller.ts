@@ -20,12 +20,15 @@ class PostController {
       if (!user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
-      const imageUrl = await uploadBlogImage(image);
+      // Images are optional; skip the upload entirely when no file was sent so
+      // posting works without Firebase credentials in local/dev setups.
+      const imageUrl = image ? await uploadBlogImage(image) : undefined;
       const blog = await Post.create({
         title,
         content,
-        image: imageUrl,
-        author: req.user.id,
+        description: String(content).slice(0, 160),
+        ...(imageUrl ? { image: imageUrl } : {}),
+        author: new mongoose.Types.ObjectId(req.user.id),
       });
       await User.findByIdAndUpdate(req.user.id, {
         $push: { posts: blog._id },

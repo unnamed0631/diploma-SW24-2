@@ -4,7 +4,6 @@ import {
   Pressable,
   Image,
   ActivityIndicator,
-  useColorScheme,
   TouchableOpacity,
   ScrollView,
 } from "react-native";
@@ -14,6 +13,7 @@ import { AuthContext } from "@/context/auth";
 import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemeText } from "@/components";
+import { useAppTheme } from "@/lib/theme";
 import {
   UploadCloud,
   X,
@@ -40,8 +40,7 @@ export default function ImageScan() {
   const [modalVisible, setModalVisible] = useState(false);
   const [foodData, setFoodData] = useState<FoodImage | null>(null);
 
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { colors } = useAppTheme();
 
   const requestGalleryPermissions = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -142,11 +141,11 @@ export default function ImageScan() {
     setFoodData(null);
   };
 
-  const bgColor = isDark ? "bg-gray-900" : "bg-white";
-  const cardBgColor = isDark ? "bg-gray-800" : "bg-gray-50";
-  const textColorPrimary = isDark ? "text-white" : "text-black";
-  const textColorSecondary = isDark ? "text-gray-300" : "text-gray-600";
-  const buttonDisabledColor = isDark ? "bg-gray-600" : "bg-gray-400";
+  const bgColor = "bg-background";
+  const cardBgColor = "bg-card";
+  const textColorPrimary = "text-foreground";
+  const textColorSecondary = "text-muted-foreground";
+  const buttonDisabledColor = "bg-muted";
 
   return (
     <SafeAreaView className={`flex-1 ${bgColor}`}>
@@ -156,7 +155,7 @@ export default function ImageScan() {
             {t("imageScan.title")}
           </ThemeText>
           <Pressable onPress={() => router.back()} className="p-2">
-            <X size={28} color={isDark ? "white" : "black"} />
+            <X size={28} color={colors.foreground} />
           </Pressable>
         </View>
 
@@ -164,15 +163,10 @@ export default function ImageScan() {
           {!imageUri && !foodData && (
             <Pressable
               onPress={() => setModalVisible(true)}
-              className={`w-full h-64 border-2 border-dashed rounded-xl justify-center items-center mb-6 ${
-                isDark ? "border-gray-600" : "border-gray-300"
-              }`}
+              className="w-full h-64 border-2 border-dashed border-border rounded-xl justify-center items-center mb-6"
             >
-              <UploadCloud
-                size={60}
-                color={isDark ? "rgb(107, 114, 128)" : "rgb(156, 163, 175)"}
-              />
-              <ThemeText className="mt-4 text-lg text-gray-500 dark:text-gray-400">
+              <UploadCloud size={60} color={colors.subtle} />
+              <ThemeText className="mt-4 text-lg text-subtle">
                 {t("imageScan.tapToUpload")}
               </ThemeText>
             </Pressable>
@@ -187,19 +181,16 @@ export default function ImageScan() {
               />
               <TouchableOpacity
                 onPress={clearImage}
-                className={`absolute top-1 right-1 p-2 rounded-full bg-black/30`}
+                className={`absolute top-1 right-1 p-2 rounded-full bg-overlay/50`}
               >
-                <X size={20} color={"white"} />
+                <X size={20} color={colors.primaryForeground} />
               </TouchableOpacity>
             </View>
           )}
 
           {isLoading && (
             <View className="my-8 flex-row justify-center items-center">
-              <ActivityIndicator
-                size="large"
-                color={isDark ? "white" : "black"}
-              />
+              <ActivityIndicator size="large" color={colors.foreground} />
               <ThemeText className={`ml-4 text-lg ${textColorPrimary}`}>
                 {t("imageScan.loadingText")}
               </ThemeText>
@@ -218,11 +209,7 @@ export default function ImageScan() {
               <View className="space-y-2">
                 <View className="flex-row justify-between items-center">
                   <View className="flex-row items-center">
-                    <Zap
-                      size={20}
-                      color={isDark ? "#FBBF24" : "#F59E0B"}
-                      className="mr-2"
-                    />
+                    <Zap size={20} color={colors.warning} className="mr-2" />
                     <Text className={`text-base ${textColorSecondary}`}>
                       {t("meal.calories")}:
                     </Text>
@@ -237,7 +224,7 @@ export default function ImageScan() {
                   <View className="flex-row items-center">
                     <Utensils
                       size={20}
-                      color={isDark ? "#A78BFA" : "#8B5CF6"}
+                      color={colors.primary}
                       className="mr-2"
                     />
                     <Text className={`text-base ${textColorSecondary}`}>
@@ -252,11 +239,7 @@ export default function ImageScan() {
                 </View>
                 <View className="flex-row justify-between items-center">
                   <View className="flex-row items-center">
-                    <Hash
-                      size={20}
-                      color={isDark ? "#60A5FA" : "#3B82F6"}
-                      className="mr-2"
-                    />
+                    <Hash size={20} color={colors.primary} className="mr-2" />
                     <Text className={`text-base ${textColorSecondary}`}>
                       {t("meal.carbs")}:
                     </Text>
@@ -269,11 +252,7 @@ export default function ImageScan() {
                 </View>
                 <View className="flex-row justify-between items-center">
                   <View className="flex-row items-center">
-                    <Droplet
-                      size={20}
-                      color={isDark ? "#F472B6" : "#EC4899"}
-                      className="mr-2"
-                    />
+                    <Droplet size={20} color={colors.accent} className="mr-2" />
                     <Text className={`text-base ${textColorSecondary}`}>
                       {t("meal.fat")}:
                     </Text>
@@ -289,23 +268,29 @@ export default function ImageScan() {
                 onPress={handleAddFoodToStats}
                 disabled={isAddingFood}
                 className={`w-full py-3 rounded-xl mt-6 flex-row justify-center items-center ${
-                  isAddingFood
-                    ? buttonDisabledColor
-                    : isDark
-                    ? "bg-green-600"
-                    : "bg-green-500"
+                  isAddingFood ? buttonDisabledColor : "bg-success"
                 }`}
               >
                 {isAddingFood ? (
                   <ActivityIndicator
                     size="small"
-                    color="white"
+                    color={colors.primaryForeground}
                     className="mr-2"
                   />
                 ) : (
-                  <PlusCircle size={20} color="white" className="mr-2" />
+                  <PlusCircle
+                    size={20}
+                    color={colors.primaryForeground}
+                    className="mr-2"
+                  />
                 )}
-                <Text className="text-white text-center text-base font-semibold">
+                <Text
+                  className={`text-center text-base font-semibold ${
+                    isAddingFood
+                      ? "text-muted-foreground"
+                      : "text-primary-foreground"
+                  }`}
+                >
                   {isAddingFood
                     ? t("imageScan.addingToStats")
                     : t("imageScan.addToStatsButton")}
@@ -319,22 +304,18 @@ export default function ImageScan() {
               {imageUri && !foodData && (
                 <TouchableOpacity
                   onPress={handleScanImage}
-                  className={`w-full py-4 rounded-xl mb-3 ${
-                    isDark ? "bg-blue-600" : "bg-blue-500"
-                  }`}
+                  className="w-full py-4 rounded-xl mb-3 bg-primary"
                 >
-                  <Text className="text-white text-center text-lg font-semibold">
+                  <Text className="text-primary-foreground text-center text-lg font-semibold">
                     {t("imageScan.scanButton")}
                   </Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
                 onPress={() => setModalVisible(true)}
-                className={`w-full py-4 rounded-xl ${
-                  isDark ? "bg-gray-700" : "bg-gray-600"
-                }`}
+                className="w-full py-4 rounded-xl bg-muted"
               >
-                <Text className="text-white text-center text-lg font-semibold">
+                <Text className="text-foreground text-center text-lg font-semibold">
                   {foodData || imageUri
                     ? t("imageScan.changeImageButton")
                     : t("imageScan.selectImageButton")}

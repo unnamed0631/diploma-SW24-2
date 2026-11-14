@@ -13,9 +13,9 @@ import {
 import { transporter } from "@/services/nodemailer";
 import RefreshToken from "@/models/refreshToken";
 import axios from "axios";
-import * as jose from "jose";
 import { BASE_URL } from "@/routes/constants";
 import { APP_SCHEME } from "@/routes/constants";
+import { randomUUID } from "crypto";
 import { uploadProfileImage } from "@/helpers/uploadImage";
 import { redisService } from "@/services/redis";
 import DailyGoal from "@/models/dailyGoal";
@@ -23,9 +23,104 @@ import { generateDailyGoals } from "@/services/aiGoals";
 import genFoodPlan from "@/services/aiFood";
 import analyzeFoodImage from "@/services/aiFoodImage";
 import genExercisePlan from "@/services/aiExercisePlan";
+import { isMailConfigured } from "@/config/env";
 
 const { genSaltSync, hashSync, compareSync } = bcryptjs;
 const hashRounds = 10;
+
+// Google-only accounts get a random password hash: they authenticate through
+// Google and can set a real password later via /auth/update.
+const generateOAuthPlaceholderPassword = () =>
+  hashSync(randomUUID(), genSaltSync(hashRounds));
+
+// Fields a client may change through PUT /auth/update. Anything not listed here
+// is ignored, except protected fields which are rejected outright below.
+const EDITABLE_USER_FIELDS = [
+  "username",
+  "image",
+  "bio",
+  "gender",
+  "birthday",
+  "height",
+  "weight",
+  "goal",
+  "activityLevel",
+  "mealPerDay",
+  "waterPerDay",
+  "workSchedule",
+  "healthCondition",
+  "hasOnboarded",
+] as const;
+
+const EDITABLE_USER_FIELD_SET = new Set<string>(EDITABLE_USER_FIELDS);
+
+const NUMERIC_USER_FIELDS = new Set(["height", "weight"]);
+
+// Server-owned or security-sensitive fields. Clients can never set these
+// directly: streaks are computed server-side and role/verification/posts/email
+// have dedicated flows.
+const PROTECTED_USER_FIELDS = new Set([
+  "streak",
+  "highestStreak",
+  "totalCalories",
+  "lastStreakUpdate",
+  "role",
+  "isEmailVerified",
+  "password",
+  "posts",
+  "email",
+  "stats",
+  "_id",
+  "id",
+  "emailVerificationToken",
+  "emailVerificationTokenExpiry",
+  "createdAt",
+  "updatedAt",
+]);
+
+type EditableFieldResult =
+  { ok: true; value: unknown } | { ok: false; error: string };
+
+function validateEditableField(key: string, raw: unknown): EditableFieldResult {
+  if (NUMERIC_USER_FIELDS.has(key)) {
+    // multipart/form-data delivers numbers as strings, so coerce those too.
+    const value =
+      typeof raw === "number"
+        ? raw
+        : typeof raw === "string" && raw.trim() !== ""
+          ? Number(raw)
+          : NaN;
+    if (!Number.isFinite(value)) {
+      return { ok: false, error: "must be a finite number" };
+    }
+    return { ok: true, value };
+  }
+
+  if (key === "birthday") {
+    const value =
+      raw instanceof Date
+        ? raw
+        : typeof raw === "string"
+          ? new Date(raw)
+          : null;
+    if (!value || Number.isNaN(value.getTime())) {
+      return { ok: false, error: "must be a valid date" };
+    }
+    return { ok: true, value };
+  }
+
+  if (key === "hasOnboarded") {
+    if (typeof raw === "boolean") return { ok: true, value: raw };
+    if (raw === "true") return { ok: true, value: true };
+    if (raw === "false") return { ok: true, value: false };
+    return { ok: false, error: "must be a boolean" };
+  }
+
+  if (typeof raw !== "string") {
+    return { ok: false, error: "must be a string" };
+  }
+  return { ok: true, value: raw };
+}
 
 async function updateUserGoals(user: IUser) {
   try {
@@ -227,6 +322,39 @@ class AuthController {
 
     const { password, newPassword, ...otherBodyFields } = req.body;
     const image = req.file;
+
+    const attemptsPasswordChange = Boolean(password || newPassword);
+    if (attemptsPasswordChange && !(password && newPassword)) {
+      return res.status(400).json({
+        message:
+          "Both the current password and newPassword are required to change the password",
+      });
+    }
+
+    const protectedFields = Object.keys(otherBodyFields).filter((key) =>
+      PROTECTED_USER_FIELDS.has(key),
+    );
+    if (protectedFields.length > 0) {
+      return res.status(400).json({
+        message: `These fields cannot be updated directly: ${protectedFields.join(
+          ", ",
+        )}`,
+      });
+    }
+
+    const updateData: Record<string, unknown> = {};
+    for (const [key, raw] of Object.entries(otherBodyFields)) {
+      // Unknown fields are ignored rather than rejected.
+      if (!EDITABLE_USER_FIELD_SET.has(key)) continue;
+      const result = validateEditableField(key, raw);
+      if (!result.ok) {
+        return res
+          .status(400)
+          .json({ message: `Invalid value for "${key}": ${result.error}` });
+      }
+      updateData[key] = result.value;
+    }
+
     let willUpdatePassword = false;
     let hashedPassword;
     try {
@@ -246,8 +374,6 @@ class AuthController {
         hashedPassword = hashSync(newPassword, salt);
       }
 
-      const updateData: any = { ...otherBodyFields };
-
       if (image) {
         updateData.image = await uploadProfileImage(image, user);
       }
@@ -256,23 +382,27 @@ class AuthController {
         updateData.password = hashedPassword;
       }
 
-      const newUser = await User.findByIdAndUpdate(req.user.id, updateData, {
-        new: true,
-      })
+      const newUser = await User.findByIdAndUpdate(
+        req.user.id,
+        { $set: updateData },
+        { new: true },
+      )
         .select("-password -emailVerificationToken")
         .exec();
 
-      req.redis.set(
-        `user:${user._id}`,
-        JSON.stringify({ ...newUser!.toJSON() }),
-      );
+      if (!newUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Keep the cached user consistent with login responses (dailyGoals included).
+      const dailyGoal = await updateUserGoals(newUser);
 
       const accessToken = generateAccessToken(newUser!);
       const refreshToken = await generateRefreshToken(newUser!);
 
       return res.status(200).json({
         message: "User updated successfully",
-        user: newUser?.toJSON(),
+        user: { ...newUser.toJSON(), dailyGoals: dailyGoal },
         accessToken,
         refreshToken,
       });
@@ -403,17 +533,28 @@ class AuthController {
   ): Promise<any> {
     const { email } = req.body;
 
+    if (!isMailConfigured()) {
+      return res.status(503).json({
+        message:
+          "Email delivery is disabled on this server (SMTP_USER / SMTP_PASS not set).",
+      });
+    }
+
     try {
       const user = await User.findOne({ email });
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const token = jwt.sign(
-        { id: user._id },
-        process.env.EMAIL_VERIFICATION_SECRET as string,
-        { expiresIn: "1h" },
-      );
+      const secret = process.env.EMAIL_VERIFICATION_SECRET;
+      if (!secret) {
+        return res.status(503).json({
+          message:
+            "Email verification is disabled (EMAIL_VERIFICATION_SECRET not set).",
+        });
+      }
+
+      const token = jwt.sign({ id: user._id }, secret, { expiresIn: "1h" });
 
       const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
 
@@ -445,10 +586,15 @@ class AuthController {
     const { token } = req.query;
 
     try {
-      const decoded = jwt.verify(
-        token as string,
-        process.env.EMAIL_VERIFICATION_SECRET as string,
-      ) as UserPayload;
+      const secret = process.env.EMAIL_VERIFICATION_SECRET;
+      if (!secret) {
+        return res.status(503).json({
+          message:
+            "Email verification is disabled (EMAIL_VERIFICATION_SECRET not set).",
+        });
+      }
+
+      const decoded = jwt.verify(token as string, secret) as UserPayload;
 
       const user = await User.findById(decoded.id).select("-password").exec();
       if (!user) {
@@ -497,31 +643,52 @@ class AuthController {
         },
       );
       const data = response.data;
-      const userInfo = jose.decodeJwt(data.id_token) as googleUser;
-      console.log("userInfo", userInfo);
+      const decodeResult = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${data.id_token}`,
+        { method: "GET" },
+      );
+      if (!decodeResult.ok) {
+        return res.status(401).json({ message: "Google token is invalid" });
+      }
+      const userInfo = (await decodeResult.json()) as googleUser;
+      console.log("Google user:", userInfo.email);
 
-      const user = await User.findOne({ email: userInfo.email })
+      let user = await User.findOne({ email: userInfo.email })
         .select("-password -emailVerificationToken")
         .exec();
+
+      // First Google sign-in: create the account immediately instead of asking
+      // the client to complete a separate registration flow (Apple parity).
       if (!user) {
-        return res.status(202).json({
-          message: "User not found. Ask to register.",
-          data: {
-            email: userInfo.email,
-            username: userInfo.name,
-            image: userInfo.picture,
-          },
+        const created = await User.create({
+          email: userInfo.email,
+          username: userInfo.name || userInfo.email.split("@")[0],
+          image: userInfo.picture ?? null,
+          password: generateOAuthPlaceholderPassword(),
+          isEmailVerified: true,
+          hasOnboarded: false,
         });
+        user = await User.findById(created._id)
+          .select("-password -emailVerificationToken")
+          .exec();
       }
+
+      if (!user) {
+        return res.status(500).json({ message: "Could not load user" });
+      }
+
       const accessToken = generateAccessToken(user);
       const refreshToken = await generateRefreshToken(user);
       const dailyGoal = await updateUserGoals(user);
 
+      const userData = {
+        ...user.toJSON(),
+        dailyGoals: dailyGoal,
+      };
+      await redisService.set(`user:${user._id}`, JSON.stringify(userData));
+
       res.status(200).json({
-        user: {
-          ...user.toJSON(),
-          dailyGoals: dailyGoal,
-        },
+        user: userData,
         accessToken,
         refreshToken,
       });
@@ -532,6 +699,7 @@ class AuthController {
   }
 
   public static async authorize(req: Request, res: Response): Promise<any> {
+    const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
     try {
       if (!process.env.GOOGLE_CLIENT_ID) {
         return res
@@ -570,17 +738,13 @@ class AuthController {
 
       const params = new URLSearchParams({
         client_id: idpClientId,
-        // TODO: GOOGLE_AUTH_URL needs to be defined, possibly from process.env
-        // For now, I'll use a placeholder. Replace with actual value.
         redirect_uri: `${BASE_URL}/auth/callback`,
         response_type: "code",
-        scope: url.searchParams.get("scope") || "identity",
+        scope: "openid email profile",
         state: state,
         prompt: "select_account",
       });
 
-      console.log("redirect_uri", BASE_URL);
-      const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
       return res.redirect(GOOGLE_AUTH_URL + "?" + params.toString());
     } catch (e) {
       console.error("authorize error:", e);
@@ -633,7 +797,12 @@ class AuthController {
       return res.status(404).json({ message: "User not found" });
     }
     const foodPlan = await genFoodPlan(user, goal);
-    console.log(foodPlan);
+
+    if (!foodPlan) {
+      return res
+        .status(500)
+        .json({ message: "Failed to generate a food plan" });
+    }
 
     return res.status(200).json(foodPlan);
   }
@@ -642,15 +811,21 @@ class AuthController {
     req: AuthenticatedRequest,
     res: Response,
   ): Promise<any> {
-    console.log("req.body", req.file);
     const image = req.file;
     if (!image) {
       return res.status(400).json({ message: "Image is required" });
     }
     // turn img multer memory to base64
     const base64Image = image.buffer.toString("base64");
-    const food = await analyzeFoodImage(base64Image);
-    return res.status(200).json(food);
+    try {
+      const food = await analyzeFoodImage(base64Image);
+      return res.status(200).json(food);
+    } catch (e) {
+      if (e instanceof Error && e.name === "AiUnavailableError") {
+        return res.status(503).json({ message: e.message });
+      }
+      throw e;
+    }
   }
 
   public static async exercise(
@@ -668,6 +843,9 @@ class AuthController {
       const exercisePlan = await genExercisePlan(user);
       return res.status(200).json(exercisePlan);
     } catch (e) {
+      if (e instanceof Error && e.name === "AiUnavailableError") {
+        return res.status(503).json({ message: e.message });
+      }
       console.error("Error generating exercise plan:", e);
       res.status(500).json({ message: "Internal server error" });
     }

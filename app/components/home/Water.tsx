@@ -16,11 +16,11 @@ import { useStatsStore } from "@/stores/statsStore";
 import WaterAnimation from "./WaterAnimation";
 
 export default function Water() {
-  const { theme } = useAppTheme();
+  const { theme, colors } = useAppTheme();
   const [componentHeight, setComponentHeight] = useState<number>(0);
   const { t } = useTranslation();
 
-  const { waterGoal } = useStatsStore();
+  const { water, waterGoal } = useStatsStore();
   const [modalVisible, setModalVisible] = useState(false);
 
   const handlePressIn = () => {
@@ -41,7 +41,9 @@ export default function Water() {
     const color = interpolateColor(
       pressed.value,
       [0, 1],
-      theme === "dark" ? ["#ffffff60", "#ffffff00"] : ["#00000040", "#00000030"]
+      theme === "dark"
+        ? ["#ffffff60", "#ffffff00"]
+        : ["#00000040", "#00000030"],
     );
     const boxShadow = `0px 0px ${blurRadius} 0px ${color}`;
     return {
@@ -59,7 +61,7 @@ export default function Water() {
       onLayout={(e) => {
         setComponentHeight(e.nativeEvent.layout.height);
       }}
-      className="dark:bg-gray-900 rounded-[26px] flex-[2] relative overflow-hidden dark:border-gray-800 border-[1px] border-gray-200"
+      className="bg-card rounded-card flex-[2] relative overflow-hidden border-[1px] border-border"
       style={[animatedStyle, { flex: 2 }]}
     >
       <WaterModal visible={modalVisible} setVisible={setModalVisible} />
@@ -70,18 +72,22 @@ export default function Water() {
         onPress={handlePress}
       >
         <View className="flex-row items-center justify-between  ">
-          <ThemeText className="flex-1 font-bold text-lg dark:text-black px-1 ">
+          <ThemeText className="flex-1 font-bold text-lg px-1 ">
             {t("water.word")}
           </ThemeText>
           <View className="w-[20px] h-[25px] ">
-            <Droplets size={25} color={theme === "dark" ? "#fff" : "#000"} />
+            <Droplets size={25} color={colors.foreground} />
           </View>
         </View>
 
         {/* Text content */}
         <View className="relative">
-          <ThemeText className="text-2xl font-bold">{waterGoal}</ThemeText>
-          <ThemeText className="text-sm font-normal">17 oz</ThemeText>
+          <ThemeText className="text-2xl font-bold">
+            {Math.round(water || 0)}
+          </ThemeText>
+          <ThemeText className="text-sm font-normal">
+            ml / {waterGoal} ml
+          </ThemeText>
         </View>
       </Pressable>
       <WaterAnimation containerHeight={componentHeight} />

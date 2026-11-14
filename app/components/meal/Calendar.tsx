@@ -20,9 +20,7 @@ export default function Calendar({
   weekLabel2,
   addButtonLabel,
 }: CalendarProps) {
-  const { theme } = useAppTheme();
-  const isDarkMode = theme === "dark";
-  const textColor = isDarkMode ? "#ffffff" : "#000000";
+  const { colors } = useAppTheme();
 
   const renderWeek = (weekDates: Moment[]) => (
     <View style={styles.weekRow}>
@@ -34,17 +32,20 @@ export default function Calendar({
             onPress={() => onSelectDate(date)}
             style={[
               styles.dayContainer,
-              isSelected && styles.selectedDayContainer,
+              isSelected && { backgroundColor: colors.primary },
             ]}
           >
-            <Text style={[styles.dayText, isDarkMode && { color: "#aaa" }]}>
+            <Text style={[styles.dayText, { color: colors.mutedForeground }]}>
               {date.format("dd").charAt(0)}
             </Text>
             <Text
               style={[
                 styles.dateText,
-                isSelected && styles.selectedDate,
-                isDarkMode && !isSelected && { color: "#fff" },
+                {
+                  color: isSelected
+                    ? colors.primaryForeground
+                    : colors.foreground,
+                },
               ]}
             >
               {date.format("D")}
@@ -57,14 +58,20 @@ export default function Calendar({
 
   return (
     <View style={styles.calendarSection}>
-      <Text style={[styles.weekLabel, { color: textColor }]}>{weekLabel1}</Text>
+      <Text style={[styles.weekLabel, { color: colors.foreground }]}>
+        {weekLabel1}
+      </Text>
       {renderWeek(dates.slice(0, 7))}
 
-      <Text style={[styles.weekLabel, { color: textColor }]}>{weekLabel2}</Text>
+      <Text style={[styles.weekLabel, { color: colors.foreground }]}>
+        {weekLabel2}
+      </Text>
       {renderWeek(dates.slice(7, 14))}
 
       <TouchableOpacity style={styles.addButton}>
-        <Text style={styles.addButtonText}>+ {addButtonLabel}</Text>
+        <Text style={[styles.addButtonText, { color: colors.primary }]}>
+          + {addButtonLabel}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -92,27 +99,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     width: 40,
   },
-  selectedDayContainer: {
-    backgroundColor: "#136CF1",
-  },
   dayText: {
     fontSize: 12,
-    color: "#666",
     marginBottom: 4,
   },
   dateText: {
     fontSize: 16,
     fontWeight: "500",
   },
-  selectedDate: {
-    color: "#fff",
-  },
   addButton: {
     alignItems: "center",
     marginTop: 20,
   },
   addButtonText: {
-    color: "#136CF1",
     marginTop: -20,
     fontWeight: "500",
   },

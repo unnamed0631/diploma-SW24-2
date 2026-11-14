@@ -109,7 +109,42 @@
     "Privacy": "Privacy",
     "language": "Language",
     "darkMode": "Dark Mode",
-    "logout": "Logout"
+    "logout": "Logout",
+    "loggingOut": "Logging out..."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Choose which reminders you want to receive on this device.",
+    "water": "Water reminders",
+    "streak": "Streak reminders",
+    "workout": "Workout reminders",
+    "weeklyReport": "Weekly report",
+    "footnote": "Notification scheduling isn't available yet. These preferences are saved on this device and will be used once reminders are supported."
+  },
+  "privacy": {
+    "title": "Privacy",
+    "policyTitle": "Privacy Policy",
+    "policy1": "Bluvi Fitness stores your profile, meals, workouts and preferences on your device and, when you are signed in, on our server so your data follows you across devices.",
+    "policy2": "We do not sell your data. Camera, photo and health permissions are only used when you start a feature that needs them, and you can clear the data saved on this device at any time.",
+    "termsTitle": "Terms of Service",
+    "terms1": "Bluvi Fitness provides fitness and nutrition guidance for general wellbeing. It is not medical advice; speak to a professional before changing your routine if you have a health condition.",
+    "terms2": "Use the app responsibly and keep your account credentials private. We may update these terms as the app evolves, and continuing to use the app means you accept the latest version.",
+    "clearTitle": "Clear local data",
+    "clearDesc": "Removes meals, workouts, stats, preferences and sign-in tokens saved on this device. This signs you out.",
+    "clearConfirmTitle": "Clear local data?",
+    "clearConfirmMessage": "This removes data saved on this device, including preferences and sign-in tokens, and signs you out. Your account on the server is not deleted.",
+    "cancel": "Cancel",
+    "clearConfirm": "Clear",
+    "clearedTitle": "Local data cleared",
+    "clearedMessage": "Data saved on this device has been removed.",
+    "clearErrorTitle": "Could not clear data",
+    "clearErrorMessage": "Something went wrong. Please try again."
+  },
+  "closeFriends": {
+    "title": "Close Friends",
+    "heading": "No close friends yet",
+    "body": "Close Friends lets you share workouts and progress with a small group of people you trust. It needs an account connection feature that hasn't been built yet, so there is no one to show here for now.",
+    "hint": "When friend connections arrive, this screen will list the people you add."
   },
   "a": "login",
   "imageScan": {
@@ -145,13 +180,7 @@
   },
   "question1": {
     "tanid": "Do you have any dietary restrictions we should know about?",
-    "suun": [
-      "Lactose Free",
-      "Sugar Free",
-      "Gluten free",
-      "Nut Free",
-      "None"
-    ],
+    "suun": ["Lactose Free", "Sugar Free", "Gluten free", "Nut Free", "None"],
     "daraah": "Continue"
   },
   "question2": {
@@ -169,12 +198,7 @@
   },
   "question3": {
     "ta": "Which meals do you usually have in a day?",
-    "ogloo": [
-      "Breakfast",
-      "Lunch",
-      "Dinner",
-      "Snacks"
-    ],
+    "ogloo": ["Breakfast", "Lunch", "Dinner", "Snacks"],
     "daraah": "Continue"
   },
   "question4": {
@@ -263,21 +287,13 @@
       "meals": {
         "title": "How many meals do you have per day?",
         "desc": "Your choice will affect your workout plan",
-        "choices": [
-          "4 meals or more",
-          "2-3 meals per day",
-          "1 meal per day"
-        ]
+        "choices": ["4 meals or more", "2-3 meals per day", "1 meal per day"]
       },
       "water": {
         "milliliter": "ml",
         "title": "How much water do you drink per day?",
         "desc": "Your choice will affect your workout plan",
-        "choices": [
-          "4 liters or more",
-          "2-3 liters per day",
-          "1 liter per day"
-        ]
+        "choices": ["4 liters or more", "2-3 liters per day", "1 liter per day"]
       },
       "work": {
         "title": "What is your current work schedule?",

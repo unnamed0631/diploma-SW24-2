@@ -16,6 +16,8 @@ const validateUser = [
 app.post("/login", auth.login);
 app.post("/register", validateUser, auth.register);
 app.put("/update", authenticate, upload.single("image"), auth.update);
+app.post("/verify-email", authenticate, auth.sendVerificationEmail);
+app.get("/verify-email", auth.verifyEmail);
 app.post("/refresh", auth.generateNewToken);
 app.post("/google", auth.google);
 app.get("/authorize", auth.authorize);

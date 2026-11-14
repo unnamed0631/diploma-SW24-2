@@ -19,8 +19,8 @@ export default function App() {
   if (!permission) return <View />;
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.message}>
+      <View className="flex-1 bg-background">
+        <Text className="text-subtle" style={styles.message}>
           Камер ашиглах зөвшөөрөл шаардлагатай.
         </Text>
         <Button onPress={requestPermission} title="Зөвшөөрөх" />
@@ -39,7 +39,7 @@ export default function App() {
 
     try {
       const response = await fetch(
-        `https://world.openfoodfacts.org/api/v0/product/${data}.json`
+        `https://world.openfoodfacts.org/api/v0/product/${data}.json`,
       );
       const json = await response.json();
 
@@ -88,7 +88,7 @@ export default function App() {
   }
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-background">
       {!foodInfo ? (
         <CameraView
           style={styles.camera}
@@ -108,78 +108,92 @@ export default function App() {
           </View>
         </CameraView>
       ) : (
-        <ScrollView contentContainerStyle={styles.infoContainer}>
-          <Text style={styles.title}>
+        <ScrollView
+          className="bg-background"
+          contentContainerStyle={styles.infoContainer}
+        >
+          <Text className="text-foreground" style={styles.title}>
             {foodInfo.product_name || "Нэргүй бүтээгдэхүүн"}
           </Text>
 
-          <View style={styles.card}>
-            <Text style={styles.label}>🍽 Ангилал:</Text>
-            <Text style={styles.value}>
+          <View className="bg-muted" style={styles.card}>
+            <Text className="text-foreground" style={styles.label}>
+              🍽 Ангилал:
+            </Text>
+            <Text className="text-foreground" style={styles.value}>
               {foodInfo.categories || "Мэдээлэл байхгүй"}
             </Text>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.label}>📊Шим тэжээлийн мэдээлэл:</Text>
-            <Text style={styles.value}>
+          <View className="bg-muted" style={styles.card}>
+            <Text className="text-foreground" style={styles.label}>
+              📊Шим тэжээлийн мэдээлэл:
+            </Text>
+            <Text className="text-foreground" style={styles.value}>
               Илчлэг:{" "}
               {Math.round(foodInfo.nutriments?.["energy-kcal"] * 100) / 100 ||
                 "?"}{" "}
               kcal
             </Text>
-            <Text style={styles.value}>
+            <Text className="text-foreground" style={styles.value}>
               Нүүрс ус:{" "}
               {Math.round(foodInfo.nutriments?.carbohydrates * 100) / 100 ||
                 "?"}{" "}
               г
             </Text>
-            <Text style={styles.value}>
+            <Text className="text-foreground" style={styles.value}>
               Өөх тос: {Math.round(foodInfo.nutriments?.fat * 100) / 100 || "?"}{" "}
               г
             </Text>
-            <Text style={styles.value}>
+            <Text className="text-foreground" style={styles.value}>
               ‣ Ханасан тос:{" "}
               {Math.round(foodInfo.nutriments?.["saturated-fat"] * 100) / 100 ||
                 "?"}{" "}
               г
             </Text>
-            <Text style={styles.value}>
+            <Text className="text-foreground" style={styles.value}>
               Уураг:{" "}
               {Math.round(foodInfo.nutriments?.proteins * 100) / 100 || "?"} г
             </Text>
-            <Text style={styles.value}>
+            <Text className="text-foreground" style={styles.value}>
               Давс: {Math.round(foodInfo.nutriments?.salt * 100) / 100 || "?"} г
             </Text>
-            <Text style={styles.value}>
+            <Text className="text-foreground" style={styles.value}>
               Сахар:{" "}
               {Math.round(foodInfo.nutriments?.sugars * 100) / 100 || "?"} г
             </Text>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.label}>🟢 Тэжээлийн чанарын үнэлгээ:</Text>
-            <Text style={[styles.value, { fontWeight: "bold", fontSize: 18 }]}>
+          <View className="bg-muted" style={styles.card}>
+            <Text className="text-foreground" style={styles.label}>
+              🟢 Тэжээлийн чанарын үнэлгээ:
+            </Text>
+            <Text
+              className="text-foreground"
+              style={[styles.value, { fontWeight: "bold", fontSize: 18 }]}
+            >
               {foodInfo.nutriscore_grade?.toUpperCase() || "?"}
             </Text>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.label}>🧂 Тэжээлийн түвшин:</Text>
-            <Text style={styles.value}>
+          <View className="bg-muted" style={styles.card}>
+            <Text className="text-foreground" style={styles.label}>
+              🧂 Тэжээлийн түвшин:
+            </Text>
+            <Text className="text-foreground" style={styles.value}>
               Өөх тос: {getLevel(foodInfo.nutriments?.fat_100g || 0, "fat")}
             </Text>
-            <Text style={styles.value}>
+            <Text className="text-foreground" style={styles.value}>
               Ханасан тос:{" "}
               {getLevel(
                 foodInfo.nutriments?.["saturated-fat_100g"] || 0,
-                "saturated-fat"
+                "saturated-fat",
               )}
             </Text>
-            <Text style={styles.value}>
+            <Text className="text-foreground" style={styles.value}>
               Сахар: {getLevel(foodInfo.nutriments?.sugars_100g || 0, "sugars")}
             </Text>
-            <Text style={styles.value}>
+            <Text className="text-foreground" style={styles.value}>
               Давс: {getLevel(foodInfo.nutriments?.salt_100g || 0, "salt")}
             </Text>
           </View>
@@ -199,12 +213,10 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   message: {
     textAlign: "center",
     padding: 10,
     fontSize: 16,
-    color: "gray",
   },
   camera: { flex: 1 },
   buttonContainer: {
@@ -223,7 +235,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: "center",
     padding: 20,
-    backgroundColor: "#fff",
   },
   title: {
     fontSize: 24,
@@ -232,7 +243,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   card: {
-    backgroundColor: "#f0f4f7",
     borderRadius: 15,
     padding: 15,
     marginVertical: 10,

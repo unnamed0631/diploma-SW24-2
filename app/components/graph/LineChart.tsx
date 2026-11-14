@@ -20,6 +20,7 @@ import XAxisText from "./XAxisText";
 import Cursor from "./Cursor";
 import Gradient from "./Gradient";
 import { getYForX, parse } from "react-native-redash";
+import { useAppTheme } from "@/lib/theme";
 
 type Props = {
   chartWidth: number;
@@ -38,6 +39,7 @@ const LineChart = ({
   setSelectedDate,
   selectedValue,
 }: Props) => {
+  const { colors } = useAppTheme();
   const [showCursor, setShowCursor] = useState(false);
   const animationLine = useSharedValue(0);
   const animationGradient = useSharedValue({ x: 0, y: 0 });
@@ -127,7 +129,7 @@ const LineChart = ({
           path={linePath}
           style="stroke"
           strokeWidth={4}
-          color="#4C91F9"
+          color={colors.primary}
           strokeCap="round"
           start={0}
           end={animationLine}

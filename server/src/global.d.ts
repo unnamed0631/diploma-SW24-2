@@ -8,6 +8,11 @@ declare global {
       user: UserPayload;
     }
   }
+
+  // Bun exposes `loadEnvFile` on `process`; declare it so `tsc` (Node types) is happy.
+  interface Process {
+    loadEnvFile?: (path?: string) => void;
+  }
 }
 
 export {};

@@ -5,13 +5,31 @@ import { Image } from "expo-image";
 import { useTranslation } from "@/lib/language";
 import { Button } from "react-native-paper";
 import { useRouter } from "expo-router";
+import { X } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppTheme } from "@/lib/theme";
 
 export default function Start() {
   const { t } = useTranslation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
+
   return (
-    <ThemeView className="p-8">
-      <View className="w-full h-[50%] bg-gray-200 rounded-3xl">
+    <ThemeView className="p-8" style={{ paddingTop: insets.top + 32 }}>
+      <View className="flex-row items-center justify-between">
+        <ThemeText className="text-2xl font-bold">
+          {t("training.workout")}
+        </ThemeText>
+        <Pressable
+          onPress={() => router.back()}
+          className="p-3 rounded-2xl bg-muted"
+        >
+          <X size={20} color={colors.foreground} />
+        </Pressable>
+      </View>
+
+      <View className="w-full h-[45%] bg-muted rounded-3xl mt-4">
         <Image
           source={require("@/assets/beetch.png")}
           style={[
@@ -32,9 +50,11 @@ export default function Start() {
           <Button
             mode="contained"
             className="rounded-xl"
-            contentStyle={{ paddingVertical: 12, backgroundColor: "white" }}
+            contentStyle={{ paddingVertical: 12, backgroundColor: colors.card }}
           >
-            <Text className="text-black font-bold">{t("start.later")}</Text>
+            <Text className="text-card-foreground font-bold">
+              {t("start.later")}
+            </Text>
           </Button>
         </Pressable>
       </View>
@@ -43,7 +63,11 @@ export default function Start() {
           <Button
             mode="contained"
             className="rounded-xl"
-            contentStyle={{ paddingVertical: 12, backgroundColor: "black" }}
+            textColor={colors.background}
+            contentStyle={{
+              paddingVertical: 12,
+              backgroundColor: colors.foreground,
+            }}
           >
             {t("start.start")}
           </Button>

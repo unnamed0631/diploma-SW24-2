@@ -29,7 +29,7 @@ const ChoiceButton: React.FC<ChoiceButtonProps> = ({
       isSelected ? "#ffffff70" : theme === "dark" ? "#ffffff40" : "#d1d5db",
       {
         duration: 300,
-      }
+      },
     );
   }, [isSelected, borderColor, theme]);
 
@@ -43,7 +43,7 @@ const ChoiceButton: React.FC<ChoiceButtonProps> = ({
   return (
     <Animated.View style={animatedStyle} className="mb-4 border-2 rounded-2xl">
       {isSelected && (
-        <View className="absolute -right-2 -top-2 rounded-full dark:text-black bg-black dark:bg-gray-200 p-1 items-center justify-center">
+        <View className="absolute -right-2 -top-2 rounded-full bg-primary p-1 items-center justify-center">
           <Icon source="check" size={16} color={iconColor} />
         </View>
       )}
@@ -56,9 +56,7 @@ const ChoiceButton: React.FC<ChoiceButtonProps> = ({
       >
         <Text
           className={`font-semibold text-lg ${
-            isSelected
-              ? "text-black dark:text-gray-200"
-              : "text-slate-500 dark:text-gray-300"
+            isSelected ? "text-foreground" : "text-subtle"
           }`}
         >
           {choice}

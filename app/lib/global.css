@@ -1,3 +1,9 @@
+/* Tailwind entry point.
+ *
+ * Colours are NOT defined here: `theme/tokens.js` is the single source of
+ * truth and `tailwind.config.js` turns it into `--color-*` CSS variables.
+ * Add a token there, never a raw hex in a component.
+ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

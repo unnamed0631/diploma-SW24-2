@@ -1,13 +1,14 @@
-import { View, Text, ScrollView, Pressable, Switch } from "react-native";
-import { Share, Bookmark, X, Sun, Star } from "lucide-react-native";
+import { View, Text, Pressable, Switch } from "react-native";
+import { Bookmark, X, Sun, Star } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemeView, ThemeText } from "@/components";
-import { Image, ImageBackground } from "expo-image";
+import { ImageBackground } from "expo-image";
 import { useTranslation } from "@/lib/language";
 import { Button } from "react-native-paper";
 import { useAppTheme } from "@/lib/theme";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { use, useMemo, useState } from "react";
+import { AuthContext } from "@/context/auth";
 import Animated, {
   useAnimatedRef,
   useAnimatedStyle,
@@ -19,16 +20,37 @@ const IMAGE_HEIGHT = 320;
 
 function Screen1() {
   const { t } = useTranslation();
-  const { theme } = useAppTheme();
-  const isDark = theme === "dark";
+  const { colors } = useAppTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+
+  const { workouts } = use(AuthContext);
+  const plan = useMemo(() => (workouts ?? []) as IExercise[], [workouts]);
+  const workout = useMemo(() => {
+    if (plan.length === 0) return null;
+    if (id) {
+      const match = plan.find((item) => String(item.id) === String(id));
+      if (match) return match;
+    }
+    return plan[0];
+  }, [id, plan]);
+
+  const equipment = useMemo(() => {
+    const raw = workout?.equipment?.trim();
+    if (!raw || raw.toLowerCase() === "none") return ["None"];
+    return raw
+      .split(/[,/]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }, [workout]);
 
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useScrollViewOffset(scrollRef);
   const deedHeight = 500 + insets.top;
-  const [isEnabled, setIsEnabled] = useState(false);
-  const toggleSwitch = () => setIsEnabled((previousState) => !previousState);
+  const [switchStates, setSwitchStates] = useState<Record<string, boolean>>({});
+  const toggleSwitch = (key: string) =>
+    setSwitchStates((previous) => ({ ...previous, [key]: !previous[key] }));
 
   const deedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -36,7 +58,7 @@ function Screen1() {
         translateY: interpolate(
           scrollOffset.value,
           [0, deedHeight / 2, deedHeight],
-          [0, -150, -200]
+          [0, -150, -200],
         ),
       },
     ],
@@ -46,6 +68,45 @@ function Screen1() {
     opacity: interpolate(scrollOffset.value, [0, deedHeight / 2], [1, 0]),
   }));
 
+  if (!workout) {
+    return (
+      <ThemeView className="flex-1">
+        <View
+          className="flex-row items-center justify-between px-6"
+          style={{ paddingTop: insets.top + 16 }}
+        >
+          <ThemeText className="text-2xl font-bold">
+            {t("training.workout")}
+          </ThemeText>
+          <Pressable
+            className="p-3 rounded-2xl"
+            style={{ backgroundColor: colors.muted }}
+            onPress={() => router.back()}
+          >
+            <X size={20} color={colors.foreground} />
+          </Pressable>
+        </View>
+        <View className="flex-1 items-center justify-center px-8">
+          <Text className="text-xl font-bold text-center text-foreground">
+            No workout plan yet
+          </Text>
+          <Text className="text-sm text-center mt-2 text-muted-foreground">
+            Pick a planned workout from the training list or create your own
+            custom session.
+          </Text>
+          <Pressable
+            className="mt-6 bg-primary rounded-xl px-6 py-3"
+            onPress={() => router.push("/home/training/screen2")}
+          >
+            <Text className="text-primary-foreground font-semibold">
+              {t("training.custom")}
+            </Text>
+          </Pressable>
+        </View>
+      </ThemeView>
+    );
+  }
+
   return (
     //  <SafeAreaView className="flex-1">
     <ThemeView className="flex-1 relative pt-[100px]">
@@ -53,17 +114,13 @@ function Screen1() {
         className="flex-row items-center gap-3 absolute right-4 z-10"
         style={{ paddingTop: insets.top }}
       >
-        {[{ icon: Share }, { icon: Bookmark }, { icon: X }].map(
-          ({ icon: Icon }, i) => (
-            <View
-              key={i}
-              className="p-4 rounded-2xl"
-              style={{ backgroundColor: isDark ? "#333" : "#e5e5e5" }}
-            >
-              <Icon size={20} color={isDark ? "white" : "black"} />
-            </View>
-          )
-        )}
+        <Pressable
+          className="p-4 rounded-2xl"
+          style={{ backgroundColor: colors.muted }}
+          onPress={() => router.back()}
+        >
+          <X size={20} color={colors.foreground} />
+        </Pressable>
       </View>
 
       <Animated.View
@@ -82,65 +139,48 @@ function Screen1() {
         >
           <Animated.View style={[deedContentStyle]} className="flex-1">
             <View className="flex-row items-center justify-between">
-              <View className="p-2 bg-blue-700 rounded-full items-center">
-                <Text className="text-white text-[11px] font-semibold p-1">
+              <View className="p-2 bg-primary rounded-full items-center">
+                <Text className="text-primary-foreground text-[11px] font-semibold p-1">
                   {t("training.special")}
                 </Text>
               </View>
             </View>
             <ThemeText className="text-5xl font-bold text-white mt-9 font-quicksand">
-              {t("training.min")}
+              {workout.duration_minutes} min
             </ThemeText>
             <ThemeText className="text-2xl font-semibold text-white mt-1 font-quicksand">
-              {t("training.bul")}
+              {workout.name}
             </ThemeText>
             <View className="flex-row items-center mt-4 gap-3">
               <Sun size={15} color="white" />
               <ThemeText className="text-white font-quicksand">
-                {t("training.dund")}
+                {workout.level}
               </ThemeText>
             </View>
             <View className="flex-row items-center mt-4 gap-3">
               <Star size={15} color="white" />
               <ThemeText className="text-white font-quicksand">
-                {t("training.str")}
+                {workout.category}
               </ThemeText>
             </View>
           </Animated.View>
         </ImageBackground>
       </Animated.View>
 
-      <ScrollView ref={scrollRef} style={{ paddingTop: IMAGE_HEIGHT - 100 }}>
+      <Animated.ScrollView
+        ref={scrollRef}
+        style={{ paddingTop: IMAGE_HEIGHT - 100 }}
+      >
         <Animated.View
           className="rounded-3xl z-10 p-6"
           style={{
-            backgroundColor: isDark ? "#111827" : "white",
+            backgroundColor: colors.card,
             minHeight: 1200,
           }}
         >
-          <View className="flex-row items-center gap-4">
-            <Image
-              source={require("@/assets/img/duel1.png")}
-              style={{ width: 53, height: 50 }}
-            />
-            <View>
-              <ThemeText className="text-gray-500 font-quicksand ">
-                {t("training.vid")}
-              </ThemeText>
-              <ThemeText className="font-semibold text-lg">Mnkv</ThemeText>
-            </View>
-          </View>
-
-          <ThemeText
-            className="mt-10 text-sm"
-            style={{ color: isDark ? "#9ca3af" : "#6b7280" }}
-          >
-            {t("training.hog")}
-          </ThemeText>
-
           <View
             className="flex-row items-center py-4 justify-between mt-4 border-b"
-            style={{ borderColor: isDark ? "#374151" : "#d1d5db" }}
+            style={{ borderColor: colors.border }}
           >
             <ThemeText className="font-bold text-lg font-quicksand">
               {t("training.aud")}
@@ -151,10 +191,7 @@ function Screen1() {
           </View>
 
           <View className="flex-row items-center mt-14 gap-3">
-            <Image
-              source={require("@/assets/img/duel2.png")}
-              style={{ width: 43, height: 40 }}
-            />
+            <Bookmark size={18} color={colors.mutedForeground} />
             <ThemeText className="uppercase text-sm font-bold font-quicksand">
               {t("training.dasgal")}
             </ThemeText>
@@ -162,24 +199,24 @@ function Screen1() {
 
           <ThemeText
             className="mt-4 font-quicksand"
-            style={{ color: isDark ? "#9ca3af" : "#6b7280" }}
+            style={{ color: colors.mutedForeground }}
           >
-            {t("training.gejuu")}
+            {workout.description}
           </ThemeText>
 
           <ThemeText
             className="uppercase mt-14"
-            style={{ color: isDark ? "#9ca3af" : "#6b7280" }}
+            style={{ color: colors.mutedForeground }}
           >
             {t("training.need")}
           </ThemeText>
 
-          <View className="flex-row mt-4 gap-4 font-quicksand">
-            {["Dumbbells", "Crossover Cable Machine"].map((item, i) => (
+          <View className="flex-row flex-wrap mt-4 gap-4 font-quicksand">
+            {equipment.map((item, i) => (
               <View
-                key={i}
+                key={`${item}-${i}`}
                 className="py-8 px-4 rounded-2xl"
-                style={{ backgroundColor: isDark ? "#374151" : "#e5e5e5" }}
+                style={{ backgroundColor: colors.muted }}
               >
                 <ThemeText className="font-semibold">{item}</ThemeText>
               </View>
@@ -188,7 +225,7 @@ function Screen1() {
 
           <ThemeText
             className="uppercase mt-14 font-quicksand"
-            style={{ color: isDark ? "#9ca3af" : "#6b7280" }}
+            style={{ color: colors.mutedForeground }}
           >
             {t("training.hiih")}
           </ThemeText>
@@ -196,11 +233,11 @@ function Screen1() {
           {[
             { title: "Warm-Up", time: "+3min" },
             { title: "Cooldown", time: "+5min" },
-          ].map(({ title, time }, i) => (
+          ].map(({ title, time }) => (
             <View
-              key={i}
+              key={title}
               className="flex-row items-center justify-between mt-4 border-b"
-              style={{ borderColor: isDark ? "#374151" : "#d1d5db" }}
+              style={{ borderColor: colors.border }}
             >
               <View className="flex-row items-center gap-1 py-4">
                 <ThemeText className="text-2xl font-bold">{title}</ThemeText>
@@ -209,33 +246,43 @@ function Screen1() {
                 </ThemeText>
               </View>
               <Switch
-                value={isEnabled}
-                onValueChange={toggleSwitch}
-                thumbColor={isEnabled ? "#2563EB" : "#ccc"}
-                trackColor={{ false: "#ccc", true: "#93c5fd" }}
+                value={!!switchStates[title]}
+                onValueChange={() => toggleSwitch(title)}
+                thumbColor={switchStates[title] ? colors.primary : colors.muted}
+                trackColor={{
+                  false: colors.muted,
+                  true: colors.primarySoft,
+                }}
               />
             </View>
           ))}
         </Animated.View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       <View className="absolute bottom-5 left-5 right-5">
         <Pressable onPress={() => router.push("/home/training/screen2")}>
           <Button
             mode="contained"
             className="rounded-xl"
-            contentStyle={{ paddingVertical: 12, backgroundColor: "#D8D8D8" }}
+            textColor={colors.foreground}
+            contentStyle={{
+              paddingVertical: 12,
+              backgroundColor: colors.muted,
+            }}
           >
             {t("start.later")}
           </Button>
         </Pressable>
       </View>
       <View className="absolute bottom-28 left-5 right-5">
-        <Pressable  onPress={() => router.push("/home/training/start")}>
+        <Pressable onPress={() => router.push("/home/training/start")}>
           <Button
             mode="contained"
-            className="rounded-xl bg-red-600"
-            contentStyle={{ paddingVertical: 12, backgroundColor: "#136CF1" }}
+            className="rounded-xl bg-primary"
+            contentStyle={{
+              paddingVertical: 12,
+              backgroundColor: colors.primary,
+            }}
           >
             {t("start.start")}
           </Button>

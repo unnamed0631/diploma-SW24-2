@@ -11,20 +11,13 @@ import Animated, {
 
 export default function ProgressBar({ maxTabs = 3 }: { maxTabs?: number }) {
   const { progress } = useRegisterStore();
-  const { theme } = useAppTheme();
   const maxStep = maxTabs;
 
   return (
     <View className="flex-row w-full items-center px-6 h-[60px] justify-center">
       <View className="flex-1 h-2 flex-row overflow-hidden gap-2">
         {[...Array(maxStep).keys()].map((step) => {
-          return (
-            <ProgressBarSegment
-              key={step}
-              isActive={step === progress}
-              theme={theme}
-            />
-          );
+          return <ProgressBarSegment key={step} isActive={step === progress} />;
         })}
       </View>
     </View>
@@ -32,13 +25,14 @@ export default function ProgressBar({ maxTabs = 3 }: { maxTabs?: number }) {
 }
 interface ProgressBarSegmentProps {
   isActive: boolean;
-  theme: "light" | "dark";
 }
 
 const ProgressBarSegment: React.FC<ProgressBarSegmentProps> = ({
   isActive,
-  theme,
 }) => {
+  const { colors } = useAppTheme();
+  const unselectedColor = colors.muted;
+  const selectedColor = colors.primary;
   const progressState = useSharedValue(0);
 
   useEffect(() => {
@@ -46,9 +40,6 @@ const ProgressBarSegment: React.FC<ProgressBarSegmentProps> = ({
   }, [isActive, progressState]);
 
   const animatedStyle = useAnimatedStyle(() => {
-    const unselectedColor = theme === "light" ? "#E5E7EB" : "#374151";
-    const selectedColor = theme === "light" ? "#000000" : "#3B82F6";
-
     //
     const backgroundColor = interpolateColor(
       progressState.value,
@@ -57,7 +48,7 @@ const ProgressBarSegment: React.FC<ProgressBarSegmentProps> = ({
       "RGB",
       {
         gamma: 5,
-      }
+      },
     );
     return {
       backgroundColor,

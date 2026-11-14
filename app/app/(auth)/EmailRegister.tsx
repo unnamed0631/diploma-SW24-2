@@ -59,12 +59,12 @@ const RegisterForm = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 35 : 0}
-        className="flex-1 bg-white dark:bg-gray-900 relative justify-center items-center pt-24 p-6"
+        className="flex-1 bg-background relative justify-center items-center pt-24 p-6"
       >
         <BlurEllipse left={-175} top={-400} size={250} />
         <View className="w-full h-full">
-          <View className="absolute bg-white dark:bg-black opacity-50 -top-9 left-6 right-6 h-10 rounded-t-3xl items-center justify-center z-10" />
-          <View className="flex-1 absolute bg-white dark:bg-gray-900 rounded-3xl inset-0 items-center justify-start pt-10 z-20">
+          <View className="absolute bg-card opacity-50 -top-9 left-6 right-6 h-10 rounded-t-3xl items-center justify-center z-10" />
+          <View className="flex-1 absolute bg-card rounded-3xl inset-0 items-center justify-start pt-10 z-20">
             <Image
               source={require("@/assets/img/logoLarge.png")}
               style={{ width: 100, height: 100 }}
@@ -72,7 +72,7 @@ const RegisterForm = () => {
               contentFit={"contain"}
               focusable={false}
             />
-            <Text className="text-3xl text-center mb-6 font-semibold dark:text-gray-100">
+            <Text className="text-3xl text-foreground text-center mb-6 font-semibold">
               {t("account.title")}
             </Text>
             <View className="w-5/6 mb-4">
@@ -80,7 +80,7 @@ const RegisterForm = () => {
                 <TextInput
                   placeholder={t("register.username")}
                   autoCapitalize="none"
-                  className="bg-white dark:bg-gray-800 text-black dark:text-white rounded-full px-6 py-5 border border-gray-300 dark:border-gray-600 text-lg"
+                  className="bg-card text-foreground rounded-full px-6 py-5 border border-border text-lg"
                   onChangeText={handleUsername}
                   placeholderTextColor={"#89888E"}
                   autoFocus={false}
@@ -96,7 +96,7 @@ const RegisterForm = () => {
                 <TextInput
                   placeholder={t("register.email")}
                   autoCapitalize="none"
-                  className="bg-white dark:bg-gray-800 text-black dark:text-white rounded-full px-6 py-5 border border-gray-300 dark:border-gray-600 text-lg"
+                  className="bg-card text-foreground rounded-full px-6 py-5 border border-border text-lg"
                   onChangeText={handleEmail}
                   placeholderTextColor={"#89888E"}
                   autoFocus={false}
@@ -109,14 +109,14 @@ const RegisterForm = () => {
                 />
               </View>
 
-              <View className="mb-2 relative border flex-row border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-full overflow-hidden">
+              <View className="mb-2 relative border flex-row border-border rounded-full overflow-hidden">
                 <TextInput
                   placeholder={t("register.password")}
                   secureTextEntry={passwordHidden}
                   autoCapitalize="none"
                   autoCorrect={false}
                   autoFocus={false}
-                  className="bg-white dark:bg-gray-800 text-black flex-1 dark:text-white px-6 py-5 text-lg"
+                  className="bg-card text-foreground flex-1 px-6 py-5 text-lg"
                   onChangeText={handlePassword}
                   placeholderTextColor={"#89888E"}
                   autoComplete="off"
@@ -152,7 +152,7 @@ const RegisterForm = () => {
                 <TouchableOpacity
                   onPress={() => router.push("/(auth)/ForgotPassword")}
                 >
-                  <Text className="text-blue-700 my-3 dark:text-gray-300 underline text-sm">
+                  <Text className="text-primary my-3 underline text-sm">
                     {t("account.forget")}
                   </Text>
                 </TouchableOpacity>
@@ -162,38 +162,38 @@ const RegisterForm = () => {
                 <TouchableOpacity
                   onPress={handleRegister}
                   disabled={loading}
-                  className="bg-black dark:bg-transparent dark:border-2 border-slate-500 rounded-full w-full py-4 items-center"
+                  className="bg-primary rounded-full w-full py-4 items-center"
                 >
                   {loading ? (
                     <ActivityIndicator />
                   ) : (
-                    <Text className="text-white dark:text-slate-200 font-semibold text-lg">
+                    <Text className="text-primary-foreground font-semibold text-lg">
                       {t("register.register")}
                     </Text>
                   )}
                 </TouchableOpacity>
               </View>
               <View className="flex-row justify-center w-full items-center gap-2">
-                <View className="bg-gray-300 dark:bg-gray-600 h-[1px] flex-1" />
-                <Text className="text-gray-500 my-3">{t("account.or")}</Text>
-                <View className="bg-gray-300 dark:bg-gray-600 h-[1px] flex-1" />
+                <View className="bg-muted h-[1px] flex-1" />
+                <Text className="text-subtle my-3">{t("account.or")}</Text>
+                <View className="bg-muted h-[1px] flex-1" />
               </View>
               <View className="flex-row justify-center space-x-4 mt-4 gap-8">
-                <TouchableOpacity className="border border-gray-300 dark:border-gray-600 rounded-full px-8 py-3">
+                <TouchableOpacity className="border border-border rounded-full px-8 py-3">
                   <Image
                     source={require("@/assets/socialLogo/google.png")}
                     style={{ width: 25, height: 30 }}
                     contentFit="contain"
                   />
                 </TouchableOpacity>
-                <TouchableOpacity className="border border-gray-300 dark:border-gray-600 rounded-full px-8 py-3">
+                <TouchableOpacity className="border border-border rounded-full px-8 py-3">
                   <Image
                     source={require("@/assets/socialLogo/instagram.png")}
                     style={{ width: 25, height: 30 }}
                     contentFit="contain"
                   />
                 </TouchableOpacity>
-                <TouchableOpacity className="border border-gray-300 dark:border-gray-600 rounded-full px-8 py-3">
+                <TouchableOpacity className="border border-border rounded-full px-8 py-3">
                   <Image
                     source={require("@/assets/socialLogo/apple.png")}
                     style={{ width: 28, height: 28 }}
@@ -203,11 +203,9 @@ const RegisterForm = () => {
               </View>
             </View>
             <View className="flex-row justify-center mt-8">
-              <Text className="dark:text-gray-200">
-                {t("account.already")}{" "}
-              </Text>
+              <Text className="text-foreground">{t("account.already")} </Text>
               <Text
-                className="text-blue-700 dark:text-gray-200 font-semibold dark:underline"
+                className="text-primary font-semibold dark:underline"
                 disabled={loading}
                 onPress={gotoLogin}
               >

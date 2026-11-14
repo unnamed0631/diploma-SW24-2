@@ -22,7 +22,7 @@ const ShimmerPlaceholder = () => {
         duration: 3000,
         easing: Easing.linear,
       }),
-      -1
+      -1,
     );
   }, [animationProgress]);
 
@@ -31,7 +31,7 @@ const ShimmerPlaceholder = () => {
     const translateX = interpolate(
       animationProgress.value,
       [0, 1],
-      [-shadeWidth, LOTTIE_WIDTH]
+      [-shadeWidth, LOTTIE_WIDTH],
     );
 
     return {
@@ -47,7 +47,7 @@ const ShimmerPlaceholder = () => {
         overflow: "hidden",
         borderRadius: 20,
       }}
-      className="rounded-full bg-white"
+      className="rounded-full bg-card"
     >
       <Animated.View
         style={[

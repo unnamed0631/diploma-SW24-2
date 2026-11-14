@@ -21,8 +21,8 @@ export default function Dialogue({ text }: propTypes) {
           focusable={false}
         />
       </View>
-      <View className="w-[70%] self-start bg-white rounded-xl p-2 items-start shadow-lg">
-        <Text className="text-black text-xl">{text}</Text>
+      <View className="w-[70%] self-start bg-card rounded-xl p-2 items-start shadow-lg">
+        <Text className="text-foreground text-xl">{text}</Text>
       </View>
     </View>
   );

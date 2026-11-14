@@ -12,10 +12,12 @@ import Animated, {
 import { useState } from "react";
 import SleepModal from "./SleepModal";
 import { MoonStar } from "lucide-react-native";
+import { useStatsStore } from "@/stores/statsStore";
 
 export default function Sleep() {
-  const { theme } = useAppTheme();
+  const { theme, colors } = useAppTheme();
   const { t } = useTranslation();
+  const { sleep } = useStatsStore();
 
   const pressed = useSharedValue(0);
   const [modalVisible, setModalVisible] = useState(false);
@@ -28,15 +30,20 @@ export default function Sleep() {
   };
 
   const handlePress = () => {
-    // setModalVisible(true);
+    setModalVisible(true);
   };
+
+  // Stored as minutes; the caption under the number is "hours".
+  const sleepHours = Math.round((Math.max(sleep, 0) / 60) * 10) / 10;
 
   const animatedStyle = useAnimatedStyle(() => {
     const blurRadius = interpolate(pressed.value, [0, 1], [2, 5]);
     const color = interpolateColor(
       pressed.value,
       [0, 1],
-      theme === "dark" ? ["#ffffff60", "#ffffff00"] : ["#00000040", "#00000030"]
+      theme === "dark"
+        ? ["#ffffff60", "#ffffff00"]
+        : ["#00000040", "#00000030"],
     );
     const boxShadow = `0px 0px ${blurRadius} 0px ${color}`;
     return {
@@ -51,7 +58,7 @@ export default function Sleep() {
 
   return (
     <Animated.View
-      className="bg-white dark:bg-gray-900 rounded-[26px] flex-1 dark:border-gray-800 border-[1px] border-gray-200"
+      className="bg-card rounded-card flex-1 border-[1px] border-border"
       style={animatedStyle}
     >
       <SleepModal visible={modalVisible} setVisible={setModalVisible} />
@@ -66,15 +73,15 @@ export default function Sleep() {
             {t("sleep.sleep")}
           </ThemeText>
           <View className="w-[25px] h-[25px]">
-            <MoonStar size={25} color={theme === "dark" ? "#fff" : "#000"} />
+            <MoonStar size={25} color={colors.foreground} />
           </View>
         </View>
 
         <View>
-          <Text className="text-2xl text-gray-700 dark:text-gray-200 font-semibold">
-            12
+          <Text className="text-2xl text-muted-foreground font-semibold">
+            {sleepHours}
           </Text>
-          <Text className="text-sm font-normal text-slate-400">
+          <Text className="text-sm font-normal text-subtle">
             {t("sleep.duration")}
           </Text>
         </View>

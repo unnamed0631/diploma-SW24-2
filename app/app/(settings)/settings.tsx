@@ -1,5 +1,5 @@
-import React, { use } from "react";
-import { View, Pressable, Switch, Text } from "react-native";
+import React, { use, useState } from "react";
+import { View, Pressable, Switch, Text, ActivityIndicator } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { ThemeView, ThemeText } from "@/components";
 import { Image } from "expo-image";
@@ -11,11 +11,12 @@ import { SettingsItem } from "@/components/SettingsItem";
 
 export default function Settings() {
   const { user, logout } = use(AuthContext);
-  const { theme, setTheme } = useAppTheme();
+  const { theme, setTheme, colors } = useAppTheme();
   const router = useRouter();
   const navigation = useNavigation();
   const { t, i18n } = useTranslation();
   const isSwitchOn = theme === "dark";
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const toggleLang = () => {
     const newLang = i18n.language === "en" ? "mn" : "en";
@@ -36,37 +37,47 @@ export default function Settings() {
     }
   };
 
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      // Once the user is cleared, the profile stack guard swaps `profile` for
+      // `login`. Navigating into that group lets the guard pick the screen
+      // instead of racing it by jumping to the tabs root.
+      router.replace("/(tabs)/(profile)");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <ThemeView className="pt-8 px-10 flex-1">
       <View className="flex-row items-center justify-between w-full">
-        <View className="border-2 overflow-hidden border-gray-200 dark:border-gray-700 rounded-full">
+        <View className="border-2 overflow-hidden border-border rounded-full">
           <Pressable
             android_disableSound
             android_ripple={{
-              color: "#dddddd",
+              color: colors.subtle,
               radius: 20,
             }}
             className="p-2"
             onPress={handleBack}
           >
-            <Icon
-              source="chevron-left"
-              size={25}
-              color={theme === "dark" ? "#fff" : "#000"}
-            />
+            <Icon source="chevron-left" size={25} color={colors.foreground} />
           </Pressable>
         </View>
         <ThemeText className="text-2xl text-center font-semibold absolute left-1/2 -translate-x-1/2">
           {t("settings.title")}
         </ThemeText>
         {/* <Pressable
-          className="border-2 border-gray-200 dark:border-gray-700 p-2 rounded-full"
+          className="border-2 border-border p-2 rounded-full"
           onPress={handleBack}
         >
           <Icon
             source="account-outline"
             size={25}
-            color={theme === "dark" ? "#fff" : "#000"}
+            color={colors.foreground}
           />
         </Pressable> */}
       </View>
@@ -99,11 +110,7 @@ export default function Settings() {
               </ThemeText>
               {/* <ThemeText className="text-lg">Profile</ThemeText> */}
             </View>
-            <Icon
-              source="chevron-right"
-              size={25}
-              color={theme === "dark" ? "#fff" : "#000"}
-            />
+            <Icon source="chevron-right" size={25} color={colors.foreground} />
           </Pressable>
         </>
       )}
@@ -143,8 +150,8 @@ export default function Settings() {
         showChevron={false}
         rightElement={
           <Pressable onPress={toggleLang}>
-            <View className="flex-row items-center px-4 py-2 rounded-full bg-gray-200 dark:bg-gray-700">
-              <Text className="text-black dark:text-white text-lg">
+            <View className="flex-row items-center px-4 py-2 rounded-full bg-muted">
+              <Text className="text-foreground text-lg">
                 {i18n.language === "mn" ? "Монгол" : "English"}
               </Text>
             </View>
@@ -161,8 +168,8 @@ export default function Settings() {
           <Switch
             value={isSwitchOn}
             onValueChange={toggleSwitch}
-            trackColor={{ false: "#ccc", true: "#93c5fd" }}
-            thumbColor={isDark ? "#1d4ed8" : "#f4f3f4"}
+            trackColor={{ false: colors.muted, true: colors.primary }}
+            thumbColor={colors.primaryForeground}
           />
         }
       />
@@ -171,12 +178,14 @@ export default function Settings() {
       {user && (
         <SettingsItem
           icon="logout"
-          title={t("settings.logout")}
+          title={isLoggingOut ? t("settings.loggingOut") : t("settings.logout")}
           showChevron={false}
-          onPress={() => {
-            logout();
-            router.replace("/(tabs)");
-          }}
+          onPress={handleLogout}
+          rightElement={
+            isLoggingOut ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : undefined
+          }
         />
       )}
     </ThemeView>

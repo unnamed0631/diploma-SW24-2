@@ -6,7 +6,7 @@ import { useContext, useEffect } from "react";
 import useDailyTaskStore from "@/stores/dailyTaskStore";
 
 export default function TabLayout() {
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
 
   const { setAuthDetails } = useDailyTaskStore();
   const { user, accessToken } = useContext(AuthContext);
@@ -27,7 +27,7 @@ export default function TabLayout() {
           headerShown: false,
           animation: "shift",
           sceneStyle: {
-            backgroundColor: theme === "light" ? "white" : "#111827",
+            backgroundColor: colors.background,
           },
         }}
       >

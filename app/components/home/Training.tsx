@@ -1,9 +1,12 @@
 import { useTranslation } from "@/lib/language";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useAppTheme } from "@/lib/theme";
+import { themeColors } from "@/theme";
 import { ThemeText } from "@/components";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
+import { useContext } from "react";
+import { AuthContext } from "@/context/auth";
 import Animated, {
   interpolate,
   interpolateColor,
@@ -17,6 +20,14 @@ export default function Training() {
   const { t } = useTranslation();
   const { theme } = useAppTheme();
   const router = useRouter();
+  const { workouts } = useContext(AuthContext);
+
+  // Total length of the planned workouts fetched from the server.
+  const plannedWorkouts = Array.isArray(workouts) ? workouts : [];
+  const plannedMinutes = plannedWorkouts.reduce(
+    (total, workout) => total + (Number(workout?.duration_minutes) || 0),
+    0,
+  );
 
   const pressed = useSharedValue(0);
 
@@ -54,7 +65,7 @@ export default function Training() {
 
   return (
     <Animated.View
-      className="dark:bg-black-900 rounded-[26px] flex-1 overflow-hidden"
+      className="rounded-card flex-1 overflow-hidden"
       style={animatedStyle}
     >
       {/* Background Gradient */}
@@ -65,6 +76,9 @@ export default function Training() {
           contentFit="cover"
         />
       </View>
+      {/* This card sits on a permanently light gradient asset, so its content
+          intentionally opts out of the theme tokens and stays dark in both
+          modes. */}
       <Pressable
         className="flex-1 justify-between p-4 px-6"
         onPressIn={handlePressIn}
@@ -72,18 +86,18 @@ export default function Training() {
         onPress={handlePress}
       >
         <View className="flex-row items-center justify-between absolute top-4 left-5">
-          <ThemeText className="flex-1 font-bold text-lg dark:text-black px-1 ">
+          <ThemeText className="flex-1 font-bold text-lg text-neutral-900 px-1">
             {t("training.workout")}
           </ThemeText>
           <View className="w-[25px] h-[20px] px-1">
-            <Dumbbell size={25} color={theme === "dark" ? "white" : "black"} />
+            <Dumbbell size={25} color={themeColors.light.foreground} />
           </View>
         </View>
         <View>
-          <Text className="text-2xl text-gray-800 dark:text-gray-200 font-semibold mt-16">
-            69
+          <Text className="text-2xl text-neutral-900 font-semibold mt-16">
+            {plannedMinutes}
           </Text>
-          <Text className="text-sm font-normal text-gray-600 dark:text-gray-200">
+          <Text className="text-sm font-normal text-neutral-600">
             {t("training.duration")}
           </Text>
         </View>

@@ -14,10 +14,9 @@ export default function NavigationButtons({
   nextLabel,
   isNextDisabled,
 }: NavigationButtonsProps) {
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
   const router = useRouter();
-  const isDarkMode = theme === "dark";
-  const backButtonColor = isDarkMode ? "#FFFFFF" : "#000000";
+  const backButtonColor = colors.foreground;
 
   return (
     <View style={styles.container}>
@@ -26,7 +25,8 @@ export default function NavigationButtons({
         style={[
           styles.backButton,
           {
-            backgroundColor: isDarkMode ? "transparent" : "#FFFFFF",
+            backgroundColor: colors.background,
+            borderColor: colors.border,
           },
         ]}
       >
@@ -41,11 +41,22 @@ export default function NavigationButtons({
         style={[
           styles.nextButton,
           {
-            backgroundColor: isNextDisabled ? "#ccc" : "#136CF1",
+            backgroundColor: isNextDisabled ? colors.muted : colors.primary,
           },
         ]}
       >
-        <Text style={styles.nextButtonText}>{nextLabel}</Text>
+        <Text
+          style={[
+            styles.nextButtonText,
+            {
+              color: isNextDisabled
+                ? colors.mutedForeground
+                : colors.primaryForeground,
+            },
+          ]}
+        >
+          {nextLabel}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -63,7 +74,6 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#d3d3d3",
     alignItems: "center",
     justifyContent: "center",
     width: 60,
@@ -81,7 +91,6 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   nextButtonText: {
-    color: "#FFFFFF",
     fontWeight: "bold",
     fontSize: 16,
   },

@@ -23,7 +23,7 @@ export default function Language() {
   };
 
   return (
-    <SafeAreaView className="dark:bg-gray-900 bg-white flex-1 items-center px-4 gap-10 justify-between py-8">
+    <SafeAreaView className="bg-background flex-1 items-center px-4 gap-10 justify-between py-8">
       <View className="items-center gap-10">
         <Image
           source={require("@/assets/mascot/BluviSmile.png")}
@@ -57,11 +57,11 @@ export default function Language() {
           onPress={() => {
             router.push("/(auth)/welcome");
           }}
-          className="bg-blue1/70 border-2 border-blue1 rounded-full px-10 py-2 items-center"
+          className="bg-primary/70 border-2 border-primary rounded-full px-10 py-2 items-center"
           activeOpacity={0.9}
           underlayColor={"#DDDDDD"}
         >
-          <Text className="text-lg text-black dark:text-white capitalize w-full font-semibold text-center">
+          <Text className="text-lg text-foreground capitalize w-full font-semibold text-center">
             {t("a")}
           </Text>
         </TouchableHighlight>

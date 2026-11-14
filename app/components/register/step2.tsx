@@ -17,8 +17,8 @@ export default function Step2() {
   const goalTitle = t("register.steps.goal.title");
   const goalDesc = t("register.steps.goal.desc");
 
-  const { theme } = useAppTheme();
-  const iconColor = theme === "dark" ? "black" : "white";
+  const { colors } = useAppTheme();
+  const iconColor = colors.primaryForeground;
   const handlePress = (index: number) => {
     setSelectedIndex(index);
     setField("goal", choices[index]);
@@ -28,7 +28,7 @@ export default function Step2() {
     <View className="flex-1 mt-28 items-center">
       <View className="flex items-center">
         <StepHeader title={goalTitle} />
-        <Text className="text-gray-300 text-lg w-[300px] font-semibold dark:text-gray-500 text-center mt-4">
+        <Text className="text-subtle text-lg w-[300px] font-semibold text-center mt-4">
           {goalDesc}
         </Text>
       </View>

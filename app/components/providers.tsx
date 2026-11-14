@@ -6,8 +6,10 @@ import { AuthProvider } from "@/context/auth";
 
 const ThemeUser = ({ children }: { children: React.ReactNode }) => {
   const { theme } = useAppTheme();
+  // No theme class here: semantic colours come from paired root CSS variables
+  // that switch through Appearance. See the note in lib/theme.tsx.
   return (
-    <View className={`${theme} flex-1`}>
+    <View className="flex-1">
       <PaperProvider theme={theme === "dark" ? MD3DarkTheme : MD3LightTheme}>
         <AuthProvider>{children}</AuthProvider>
       </PaperProvider>

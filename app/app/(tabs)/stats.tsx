@@ -1,277 +1,407 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Dimensions,
   Pressable,
-  useColorScheme,
   ScrollView,
   Image,
 } from "react-native";
-import moment, { Moment } from "moment";
+import moment from "moment";
 import { i18n, useTranslation } from "@/lib/language";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ThemeText } from "@/components";
 import QuizLottie from "@/components/home/Quizlottie";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { StatsData, useStatsStore } from "@/stores/statsStore";
+import {
+  DaySnapshot,
+  getSnapshotsForLastDays,
+  StatsData,
+  useStatsStore,
+} from "@/stores/statsStore";
 import { Check, Plus } from "lucide-react-native";
-
-const screenWidth = Dimensions.get("window").width;
+import { useAppTheme } from "@/lib/theme";
 
 const Blog = () => {
-  const [dates] = useState<Moment[]>(() => {
-    const today = moment();
-    return Array.from({ length: 7 }, (_, i) => today.clone().add(i, "days"));
-  });
-  const [selectedDate, setSelectedDate] = useState(
-    moment().format("YYYY-MM-DD"),
-  );
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { colors } = useAppTheme();
   const { t } = useTranslation();
-  const { dailyFoods } = useStatsStore();
-
-  const NUTRIENT_BAR_HEIGHT = 170;
   const {
+    history,
+    dailyFoods,
+    breakfastEaten,
+    lunchEaten,
+    dinnerEaten,
+    snackEaten,
     calories,
     protein,
     carbs,
     fat,
-    // rdc,
+    rdc,
     caloriesGoal,
     proteinGoal,
     carbsGoal,
     fatGoal,
-    // rdcGoal,
+    rdcGoal,
   } = useStatsStore();
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSelectDate = (date: Moment) => {
-    setSelectedDate(date.format("YYYY-MM-DD"));
-  };
+  const NUTRIENT_BAR_HEIGHT = 170;
+
+  // `getSnapshotsForLastDays` returns exactly 7 entries, oldest → newest and
+  // ending today. Days without a recorded snapshot come back as `null`, which
+  // the strip renders as dimmed, non-interactive pills.
+  const stripDays = useMemo(() => {
+    const snapshots = getSnapshotsForLastDays(history, 7);
+    const today = moment();
+
+    return snapshots.map((snapshot, index) => {
+      const date = today.clone().subtract(snapshots.length - 1 - index, "days");
+      return {
+        key: date.format("YYYY-MM-DD"),
+        date,
+        snapshot,
+        isToday: index === snapshots.length - 1,
+      };
+    });
+  }, [history]);
+
+  const selectedDay = selectedDate
+    ? stripDays.find((day) => day.key === selectedDate)
+    : undefined;
+
+  // Only past days with a real snapshot can be viewed; today always reads live
+  // store values so the screen keeps updating in real time.
+  const pastSnapshot =
+    selectedDay && !selectedDay.isToday ? selectedDay.snapshot : null;
+  const isViewingPast = Boolean(pastSnapshot);
+
+  const todayKey = stripDays[stripDays.length - 1]?.key;
+  const activeKey = isViewingPast && selectedDay ? selectedDay.key : todayKey;
+  const recordedPastDays = stripDays.filter(
+    (day) => !day.isToday && day.snapshot,
+  ).length;
+
+  const dayValues = pastSnapshot ?? { calories, protein, carbs, fat, rdc };
+
+  // Goals default to non-zero, but rdcGoal is 0 until the user sets an RDC
+  // target, so bars whose goal is missing are simply not rendered instead of
+  // producing NaN heights.
+  const nutrientBars = [
+    {
+      label: "Cal",
+      color: "bg-blue-300",
+      value: dayValues.calories,
+      goal: caloriesGoal,
+    },
+    {
+      label: "Prot",
+      color: "bg-green-200",
+      value: dayValues.protein,
+      goal: proteinGoal,
+    },
+    {
+      label: "Carb",
+      color: "bg-green-300",
+      value: dayValues.carbs,
+      goal: carbsGoal,
+    },
+    {
+      label: "Fats",
+      color: "bg-green-300",
+      value: dayValues.fat,
+      goal: fatGoal,
+    },
+    {
+      label: "RDC",
+      color: "bg-orange-200",
+      value: dayValues.rdc,
+      goal: rdcGoal,
+    },
+  ].filter((item) => item.goal > 0);
 
   const meals = [
     {
+      key: "breakfast",
       image: require("@/assets/food/breakfast.png"),
       typeIndex: 0,
-      cal: "120 / 304 cal",
     },
     {
+      key: "lunch",
       image: require("@/assets/food/lunch.png"),
       typeIndex: 1,
-      cal: "450 / 700 cal",
     },
     {
+      key: "dinner",
       image: require("@/assets/food/dinner.png"),
       typeIndex: 2,
-      cal: "500 / 600 cal",
     },
     {
+      key: "snack",
       image: require("@/assets/food/donut.png"),
       typeIndex: 3,
-      cal: "220 / 300 cal",
     },
   ];
 
+  const eatenBySlot: Record<string, boolean> = {
+    breakfast: breakfastEaten,
+    lunch: lunchEaten,
+    dinner: dinnerEaten,
+    snack: snackEaten,
+  };
+
   return (
     <SafeAreaView>
-      <ScrollView className="dark:bg-gray-900 bg-white">
+      <ScrollView className="bg-background">
         <View className="items-center px-10 pb-20">
           {/* Header */}
           <View className="flex-row justify-between items-center w-full mb-4">
             <ThemeText className="font-bold text-2xl">
               {t("stats.title")}
             </ThemeText>
-            <Feather name="bell" size={20} color={isDark ? "#ccc" : "black"} />
+            <Feather name="bell" size={20} color={colors.foreground} />
           </View>
 
-          {/* Calendar */}
-          <View style={styles.container}>
-            {dates.map((date) => {
-              const isSelected = selectedDate === date.format("YYYY-MM-DD");
+          {/* Date strip: last 7 days, backed by the store's rolling history */}
+          <View className="flex-row w-full mt-5 px-2">
+            {stripDays.map((day) => {
+              const hasData = Boolean(day.snapshot) || day.isToday;
+              const isActive = day.key === activeKey;
+
               return (
-                <TouchableOpacity
-                  key={date.format("YYYY-MM-DD")}
-                  // onPress={() => handleSelectDate(date)}
-                  style={styles.dayContainer}
-                  activeOpacity={0.7}
+                <Pressable
+                  key={day.key}
+                  onPress={() => setSelectedDate(day.isToday ? null : day.key)}
+                  disabled={!hasData}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected: isActive,
+                    disabled: !hasData,
+                  }}
+                  className={`flex-1 items-center ${hasData ? "" : "opacity-40"}`}
                 >
-                  <Text style={[styles.dayText, isDark && { color: "#ccc" }]}>
-                    {date.format("dd").charAt(0)}
-                  </Text>
                   <Text
-                    style={[
-                      styles.dateText,
-                      isSelected && styles.selectedDate,
-                      isDark && !isSelected && { color: "#fff" },
-                    ]}
+                    className={`text-sm mb-1 ${
+                      isActive
+                        ? "text-primary font-semibold"
+                        : hasData
+                          ? "text-muted-foreground"
+                          : "text-subtle"
+                    }`}
                   >
-                    {date.format("D")}
+                    {day.date.format("dd").charAt(0)}
                   </Text>
-                </TouchableOpacity>
+                  <View
+                    className={`w-9 h-9 rounded-full items-center justify-center ${
+                      isActive
+                        ? "bg-primary"
+                        : day.isToday
+                          ? "border border-primary"
+                          : hasData
+                            ? "bg-muted"
+                            : ""
+                    }`}
+                  >
+                    <Text
+                      className={`text-sm ${
+                        isActive
+                          ? "text-primary-foreground font-bold"
+                          : day.isToday
+                            ? "text-primary font-semibold"
+                            : "text-foreground"
+                      }`}
+                    >
+                      {day.date.format("D")}
+                    </Text>
+                  </View>
+                </Pressable>
               );
             })}
           </View>
 
-          {/* Nutrient Bars */}
-          <View className="flex-row gap-7 mt-6">
-            {[
-              {
-                label: "Cal",
-                color: "bg-blue-300",
-                value: calories,
-                goal: caloriesGoal,
-              },
-              {
-                label: "Prot",
-                color: "bg-green-200",
-                value: protein,
-                goal: proteinGoal,
-              },
-              {
-                label: "Carb",
-                color: "bg-green-300",
-                value: carbs,
-                goal: carbsGoal,
-              },
-              {
-                label: "Fats",
-                color: "bg-green-300",
-                value: fat,
-                goal: fatGoal,
-              },
-              // {
-              //   label: "RDC",
-              //   color: "bg-orange-200",
-              //   value: rdc,
-              //   goal: rdcGoal,
-              // },
-            ].map((item, i) => (
-              <View
-                className="gap-3 justify-center flex-1 items-center"
-                key={i}
-              >
-                <Text className="justify-center text-center text-gray-500">
-                  {item.goal}
+          <View className="items-center mt-3">
+            {isViewingPast && selectedDay ? (
+              <View className="flex-row items-center gap-2">
+                <Text className="text-subtle text-sm">
+                  Showing {selectedDay.date.format("ddd, D MMM")}
                 </Text>
-                <View
-                  className="w-14 border rounded-full border-gray-300 justify-end"
-                  style={{ height: NUTRIENT_BAR_HEIGHT }}
+                <Pressable
+                  onPress={() => setSelectedDate(null)}
+                  className="px-3 py-1 rounded-full bg-primary/10"
                 >
-                  <View
-                    className={`w-15 ${item.color} rounded-full items-center`}
-                    style={{
-                      height: Math.min(
-                        (item.value / item.goal) * NUTRIENT_BAR_HEIGHT,
-                        NUTRIENT_BAR_HEIGHT - 2,
-                      ),
-                      minHeight: 45,
-                    }}
-                  >
-                    <View className="top-1 flex bg-white w-[40px] aspect-square rounded-full items-center justify-center">
-                      <Text className="text-[10px]">{item.value}</Text>
-                    </View>
-                  </View>
-                </View>
-                <Text className="justify-center text-center text-gray-500">
-                  {item.label}
-                </Text>
+                  <Text className="text-primary text-xs font-semibold">
+                    {t("stepsModal.today")}
+                  </Text>
+                </Pressable>
               </View>
-            ))}
+            ) : (
+              <Text className="text-subtle text-sm">
+                {t("stepsModal.today")}
+              </Text>
+            )}
+
+            {recordedPastDays === 0 && (
+              <Text className="text-subtle text-xs text-center mt-1">
+                {"Past days will show up here as you keep using the app."}
+              </Text>
+            )}
           </View>
 
-          {/* AI Suggestion Box */}
-          <View className="w-full h-[180px] rounded-3xl mt-5 items-center justify-center relative">
+          {/* Nutrient Bars */}
+          <View className="flex-row gap-7 mt-6">
+            {nutrientBars.map((item) => {
+              const ratio = item.value / item.goal;
+              const fillHeight = Math.max(
+                Math.min(ratio * NUTRIENT_BAR_HEIGHT, NUTRIENT_BAR_HEIGHT - 2),
+                45,
+              );
+              return (
+                <View
+                  className="gap-3 justify-center flex-1 items-center"
+                  key={item.label}
+                >
+                  <Text className="justify-center text-center text-subtle">
+                    {item.goal}
+                  </Text>
+                  <View
+                    className="w-14 border rounded-full border-border justify-end"
+                    style={{ height: NUTRIENT_BAR_HEIGHT }}
+                  >
+                    <View
+                      className={`w-15 ${item.color} rounded-full items-center`}
+                      style={{ height: fillHeight }}
+                    >
+                      <View className="top-1 flex bg-white w-[40px] aspect-square rounded-full items-center justify-center">
+                        <Text className="text-background font-bold text-sm">
+                          {item.value}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                  <Text className="justify-center text-center text-subtle">
+                    {item.label}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* AI Suggestion Box (today) / day recap (past days) */}
+          <View className="w-full h-[180px] rounded-3xl mt-5 items-center justify-center relative overflow-hidden">
             <Image
               source={require("@/assets/img/foodPoster.png")}
               className="w-full h-full rounded-3xl"
               resizeMode="cover"
             />
-            <ThemeText
-              className={`absolute text-center font-bold text-white ${
-                i18n.language === "mn"
-                  ? "w-48 left-8 top-12"
-                  : "w-36 text-xl top-8 left-10"
-              }`}
-            >
-              {t("quiz.desc")}
-            </ThemeText>
 
-            <TouchableOpacity
-              onPress={() => router.push("/mnkv")}
-              className="absolute w-[100px] items-center rounded-full justify-center overflow-hidden"
-              style={{
-                bottom: 40,
-                left: 35,
-                height: 40,
-              }}
-            >
-              <QuizLottie />
-              <Text className="text-orange-500 absolute mb-2 font-bold font-quicksand">
-                {t("quiz.title")}
-              </Text>
-            </TouchableOpacity>
+            {isViewingPast && pastSnapshot && selectedDay ? (
+              <View className="absolute inset-0 bg-overlay/50 rounded-3xl items-center justify-center px-6">
+                <Text className="text-primary-foreground font-bold text-lg text-center">
+                  Recorded that day
+                </Text>
+                <Text className="text-primary-foreground text-sm text-center mt-1">
+                  {selectedDay.date.format("ddd, D MMM")}
+                </Text>
+                <Text className="text-primary-foreground text-sm text-center mt-2">
+                  {`${pastSnapshot.calories} kcal · ${pastSnapshot.protein} g ${t(
+                    "meal.protein",
+                  ).toLowerCase()} · ${pastSnapshot.carbs} g ${t(
+                    "meal.carbs",
+                  ).toLowerCase()} · ${pastSnapshot.fat} g ${t(
+                    "meal.fat",
+                  ).toLowerCase()}`}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <ThemeText
+                  className={`absolute text-center font-bold text-white ${
+                    i18n.language === "mn"
+                      ? "w-48 left-8 top-12"
+                      : "w-36 text-xl top-8 left-10"
+                  }`}
+                >
+                  {t("quiz.desc")}
+                </ThemeText>
+
+                <TouchableOpacity
+                  onPress={() => router.push("/mnkv")}
+                  className="absolute w-[100px] items-center rounded-full justify-center overflow-hidden"
+                  style={{
+                    bottom: 40,
+                    left: 35,
+                    height: 40,
+                  }}
+                >
+                  <QuizLottie />
+                  <Text className="text-orange-500 absolute mb-2 font-bold font-quicksand">
+                    {t("quiz.title")}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
 
           {/* Meals Section */}
-          <ThemeText
-            className={`text-2xl font-bold mt-6 w-full px-2 ${
-              isDark ? "text-white" : "text-black"
-            }`}
-          >
+          <ThemeText className="text-2xl font-bold mt-6 w-full px-2 text-foreground">
             {t("meal.meal")}
           </ThemeText>
 
-          {meals.map((meal, index) => {
-            const mealTypes = t("meal.type", { returnObjects: true }) as {
-              name: string;
-              desc: string;
-            }[];
-            return (
-              <View
-                key={index}
-                className="w-full h-28 border relative border-gray-300 rounded-3xl mt-6 flex-row items-center px-4"
-              >
-                {/* Food image */}
-                <View className="w-20 h-20 rounded-full overflow-hidden">
-                  <Image
-                    source={meal.image}
-                    style={{ width: "100%", height: "100%" }}
-                    resizeMode="cover"
-                  />
-                </View>
+          {isViewingPast && pastSnapshot ? (
+            <PastDaySummary snapshot={pastSnapshot} />
+          ) : (
+            meals.map((meal) => {
+              const mealTypes = t("meal.type", { returnObjects: true }) as {
+                name: string;
+                desc: string;
+              }[];
+              const food = dailyFoods?.[meal.key];
+              const eaten = eatenBySlot[meal.key];
 
-                {/* Text info */}
-                <View className="flex-1 ml-4">
-                  <Text
-                    className={`font-bold text-xl ${
-                      isDark ? "text-white" : "text-black"
-                    }`}
-                  >
-                    {mealTypes[meal.typeIndex]?.name}
-                  </Text>
-                  <Text className="text-gray-500">{meal.cal}</Text>
-                </View>
-
-                {/* Add button */}
-                <Pressable
-                  onPress={() => router.push("/(meal)/nemeh")}
-                  className="w-12 h-12 rounded-full bg-[#CBE4FC]/40 dark:bg-[#CBE4FC]/20 justify-center items-center"
+              return (
+                <View
+                  key={meal.key}
+                  className="w-full h-28 border relative border-border rounded-3xl mt-6 flex-row items-center px-4"
                 >
-                  <Feather name="plus" size={24} color="#136CF1" />
-                </Pressable>
-              </View>
-            );
-          })}
+                  {/* Food image */}
+                  <View className="w-20 h-20 rounded-full overflow-hidden">
+                    <Image
+                      source={meal.image}
+                      style={{ width: "100%", height: "100%" }}
+                      resizeMode="cover"
+                    />
+                  </View>
 
-          {dailyFoods && Object.keys(dailyFoods).length > 0 && (
-            <DailyRecommendation />
+                  {/* Text info */}
+                  <View className="flex-1 ml-4">
+                    <Text className="font-bold text-xl text-foreground">
+                      {mealTypes[meal.typeIndex]?.name}
+                    </Text>
+                    <Text className="text-subtle">
+                      {food
+                        ? `${food.calories} cal · ${
+                            eaten ? "Eaten" : "Not eaten"
+                          }`
+                        : "Not planned yet"}
+                    </Text>
+                  </View>
+
+                  {/* Add button */}
+                  <Pressable
+                    onPress={() => router.push("/(meal)/nemeh")}
+                    className="w-12 h-12 rounded-full bg-primary/10 justify-center items-center"
+                  >
+                    <Feather name="plus" size={24} color={colors.primary} />
+                  </Pressable>
+                </View>
+              );
+            })
           )}
+
+          {!isViewingPast &&
+            dailyFoods &&
+            Object.keys(dailyFoods).length > 0 && <DailyRecommendation />}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -288,16 +418,11 @@ const DailyRecommendation = () => {
     snackEaten,
     setField,
   } = useStatsStore();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { colors } = useAppTheme();
 
   return (
     <View className="mt-6 w-full">
-      <Text
-        className={`text-xl font-bold mb-3 ${
-          isDark ? "text-white" : "text-black"
-        }`}
-      >
+      <Text className="text-xl font-bold mb-3 text-foreground">
         {t("meal.recommendation")}
       </Text>
       {Object.keys(dailyFoods).map((food) => {
@@ -314,30 +439,26 @@ const DailyRecommendation = () => {
         return (
           <View
             key={food}
-            className={`flex-row bg-gray-100 dark:bg-gray-800 rounded-xl p-3 mb-3 items-center`}
+            className={`flex-row bg-card rounded-xl p-3 mb-3 items-center`}
           >
             <Image
               source={{ uri: image }}
               className="w-32 h-32 rounded-lg mr-3"
             />
             <View className="flex-1">
-              <Text
-                className={`text-base font-semibold mb-1 ${
-                  isDark ? "text-white" : "text-black"
-                }`}
-              >
+              <Text className={`text-base font-semibold mb-1 text-foreground`}>
                 {food_name}
               </Text>
-              <Text className="text-gray-500 dark:text-gray-400 mb-0.5 text-sm">
+              <Text className="text-subtle mb-0.5 text-sm">
                 {t("meal.calories")}: {calories}
               </Text>
-              <Text className="text-gray-500 dark:text-gray-400 mb-0.5 text-sm">
+              <Text className="text-subtle mb-0.5 text-sm">
                 {t("meal.protein")}: {protein}
               </Text>
-              <Text className="text-gray-500 dark:text-gray-400 mb-0.5 text-sm">
+              <Text className="text-subtle mb-0.5 text-sm">
                 {t("meal.carbs")}: {carbs}
               </Text>
-              <Text className="text-gray-500 dark:text-gray-400 text-sm">
+              <Text className="text-subtle text-sm">
                 {t("meal.fat")}: {fat}
               </Text>
             </View>
@@ -351,12 +472,12 @@ const DailyRecommendation = () => {
                   }
                 }}
                 android_ripple={{ color: "gray", radius: 10 }}
-                className="bg-gray-200 dark:bg-gray-700 rounded-full p-2"
+                className="bg-muted rounded-full p-2"
               >
                 {isEaten ? (
-                  <Check size={20} color={isDark ? "white" : "black"} />
+                  <Check size={20} color={colors.foreground} />
                 ) : (
-                  <Plus size={20} color={isDark ? "white" : "black"} />
+                  <Plus size={20} color={colors.foreground} />
                 )}
               </Pressable>
             </View>
@@ -367,34 +488,45 @@ const DailyRecommendation = () => {
   );
 };
 
-export default Blog;
+const PastDaySummary = ({ snapshot }: { snapshot: DaySnapshot }) => {
+  const { t } = useTranslation();
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 14,
-    marginTop: 20,
-  },
-  dayContainer: {
-    alignItems: "center",
-    width: (screenWidth - 27) / 7,
-  },
-  dayText: {
-    fontSize: 14,
-    color: "#333",
-    marginBottom: 4,
-  },
-  dateText: {
-    fontSize: 14,
-    color: "#000",
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  selectedDate: {
-    backgroundColor: "#3b82f6",
-    color: "#fff",
-    fontWeight: "bold",
-  },
-});
+  const totals = [
+    {
+      label: t("meal.calories"),
+      value: `${snapshot.calories} kcal`,
+    },
+    { label: t("meal.protein"), value: `${snapshot.protein} g` },
+    { label: t("meal.carbs"), value: `${snapshot.carbs} g` },
+    { label: t("meal.fat"), value: `${snapshot.fat} g` },
+  ];
+
+  return (
+    <View className="w-full bg-card border border-border rounded-3xl mt-6 p-4">
+      <Text className="text-base font-bold text-foreground">
+        Recorded that day
+      </Text>
+      <Text className="text-subtle text-sm mt-1">
+        {
+          "Meal plans are only kept for today, so this is the total recorded for that day."
+        }
+      </Text>
+
+      <View className="mt-3">
+        {totals.map((total, index) => (
+          <View
+            key={total.label}
+            className={`flex-row justify-between items-center py-2 ${
+              index < totals.length - 1 ? "border-b border-border" : ""
+            }`}
+          >
+            <Text className="text-muted-foreground">{total.label}</Text>
+            <Text className="text-foreground font-semibold">{total.value}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+};
+
+export default Blog;

@@ -3,6 +3,7 @@ import { View, Text, Pressable, Animated } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { format, startOfMonth, endOfMonth, getDay, getDate } from "date-fns";
 import { useState } from "react";
+import { useAppTheme } from "@/lib/theme";
 
 const weekdayShort = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -21,6 +22,7 @@ export default function MiniCalendar({
   isNextDisabled: boolean;
 }) {
   const today = new Date();
+  const { colors } = useAppTheme();
   const start = startOfMonth(currentDate);
   const end = endOfMonth(currentDate);
   const totalDays = getDate(end);
@@ -37,16 +39,16 @@ export default function MiniCalendar({
   const isCompleted = (date: number) => completedDays.includes(date);
 
   return (
-    <View className="w-full border-2 border-gray-200 dark:border-gray-500 p-3 rounded-xl">
+    <View className="w-full border-2 border-border p-3 rounded-xl">
       {/* Header with month & nav */}
       <View className="flex-row justify-between items-center mb-4 px-2">
         <ArrowButton direction="left" onPress={onPrevMonth} />
-        <Text className="text-lg font-bold text-black dark:text-white">
+        <Text className="text-lg font-bold text-foreground">
           {format(currentDate, "MMMM, yyyy")}
         </Text>
         {isNextDisabled ? (
-          <View className="bg-gray-400 dark:bg-gray-700 rounded-full p-1">
-            <Feather name="chevron-right" size={22} color="white" />
+          <View className="bg-muted rounded-full p-1">
+            <Feather name="chevron-right" size={22} color={colors.subtle} />
           </View>
         ) : (
           <ArrowButton direction="right" onPress={onNextMonth} />
@@ -58,7 +60,7 @@ export default function MiniCalendar({
         {weekdayShort.map((day, i) => (
           <Text
             key={i}
-            className="flex-1 text-center text-md font-bold text-gray-500"
+            className="flex-1 text-center text-md font-bold text-subtle"
           >
             {day}
           </Text>
@@ -81,10 +83,10 @@ export default function MiniCalendar({
                   // onPress={() => onToggleComplete(day)}
                   className={`
                     w-12 h-12 rounded-full items-center justify-center
-                    ${isStreakDay ? "bg-blue-500" : ""}
+                    ${isStreakDay ? "bg-primary" : ""}
                     ${
                       isTodayDate && !isStreakDay
-                        ? "border-2 border-blue-500"
+                        ? "border-2 border-primary"
                         : ""
                     }
                   `}
@@ -92,8 +94,8 @@ export default function MiniCalendar({
                   <Text
                     className={`${
                       isStreakDay
-                        ? "text-white"
-                        : "text-gray-400 text-md font-bold dark:text-gray-500"
+                        ? "text-primary-foreground"
+                        : "text-subtle text-md font-bold"
                     }`}
                   >
                     {day}
@@ -119,6 +121,7 @@ const ArrowButton = ({
 }) => {
   const [scaleAnim] = useState(() => new Animated.Value(1));
   const [pressed, setPressed] = useState(false);
+  const { colors } = useAppTheme();
 
   const handlePressIn = () => {
     setPressed(true);
@@ -144,13 +147,14 @@ const ArrowButton = ({
       <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut}>
         <View
           className={`${
-            pressed ? "bg-blue-700" : "bg-blue-500"
+            pressed ? "bg-primary/80" : "bg-primary"
           } rounded-full p-1`}
         >
-          <ThemeText className="text-white dark:text-black">
+          <ThemeText className="text-primary-foreground">
             <Feather
               name={direction === "left" ? "chevron-left" : "chevron-right"}
               size={22}
+              color={colors.primaryForeground}
             />
           </ThemeText>
         </View>

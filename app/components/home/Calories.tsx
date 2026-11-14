@@ -12,9 +12,11 @@ import Animated, {
 } from "react-native-reanimated";
 import { Zap } from "lucide-react-native";
 import CaloriesModal from "./CaloriesModal";
+import { useStatsStore } from "@/stores/statsStore";
 export default function Calories() {
-  const { theme } = useAppTheme();
+  const { theme, colors } = useAppTheme();
   const { t } = useTranslation();
+  const { calories, caloriesGoal } = useStatsStore();
   const [modalVisible, setModalVisible] = useState(false);
   const pressed = useSharedValue(0);
 
@@ -27,7 +29,7 @@ export default function Calories() {
   };
 
   const handlePress = () => {
-    // setModalVisible(true);
+    setModalVisible(true);
   };
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -35,7 +37,9 @@ export default function Calories() {
     const color = interpolateColor(
       pressed.value,
       [0, 1],
-      theme === "dark" ? ["#ffffff60", "#ffffff00"] : ["#00000040", "#00000030"]
+      theme === "dark"
+        ? ["#ffffff60", "#ffffff00"]
+        : ["#00000040", "#00000030"],
     );
     const boxShadow = `0px 0px ${blurRadius} 0px ${color}`;
     return {
@@ -50,7 +54,7 @@ export default function Calories() {
 
   return (
     <Animated.View
-      className="dark:bg-gray-900 rounded-[26px] flex-1  bg-white"
+      className="bg-card rounded-card flex-1"
       style={animatedStyle}
     >
       <CaloriesModal visible={modalVisible} setVisible={setModalVisible} />
@@ -65,15 +69,15 @@ export default function Calories() {
             {t("calories.calorie")}
           </ThemeText>
           <View className="w-[25px] h-[25px] px-2">
-            <Zap color={theme === "dark" ? "#ffffff" : "#000000"} size={25} />
+            <Zap color={colors.foreground} size={25} />
           </View>
         </View>
 
         <View>
-          <Text className="text-2xl text-gray-700 dark:text-gray-200 font-semibold">
-            12
+          <Text className="text-2xl text-muted-foreground font-semibold">
+            {Math.round(calories || 0)} / {caloriesGoal}
           </Text>
-          <Text className="text-sm font-normal text-slate-400">
+          <Text className="text-sm font-normal text-subtle">
             {t("calories.kcal")}
           </Text>
         </View>

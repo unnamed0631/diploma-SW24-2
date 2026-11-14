@@ -1,6 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
+import { isAiConfigured } from "@/config/env";
 
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const genAI = isAiConfigured()
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string })
+  : null;
 
 interface UserStats {
   age?: number;
@@ -22,9 +25,50 @@ interface DailyGoals {
   rdcGoal: number;
 }
 
+/**
+ * Deterministic fallback (Mifflin-St Jeor + activity multiplier) so local dev
+ * and AI outages still produce sensible goals without a Gemini key.
+ */
+function fallbackGoals(userStats: UserStats): DailyGoals {
+  const weight =
+    userStats.weight && userStats.weight > 0 ? userStats.weight : 70;
+  const height =
+    userStats.height && userStats.height > 0 ? userStats.height : 170;
+  const age = userStats.age && userStats.age > 0 ? userStats.age : 30;
+  const male = userStats.gender !== "female";
+
+  const bmr = 10 * weight + 6.25 * height - 5 * age + (male ? 5 : -161);
+  const activityMultiplier: Record<string, number> = {
+    sedentary: 1.2,
+    light: 1.375,
+    moderate: 1.55,
+    active: 1.725,
+    very_active: 1.9,
+  };
+  const calories = Math.round(
+    bmr * (activityMultiplier[userStats.activityLevel ?? ""] ?? 1.375),
+  );
+
+  return {
+    waterGoal:
+      Math.round(Math.min(Math.max(weight * 35, 1500), 4000) / 100) * 100,
+    stepsGoal: 8000,
+    caloriesGoal: Math.min(Math.max(calories, 1200), 4000),
+    proteinGoal: Math.round(weight * 1.6),
+    carbsGoal: Math.round((calories * 0.45) / 4),
+    fatGoal: Math.round((calories * 0.25) / 9),
+    sleepGoal: 8,
+    rdcGoal: 0,
+  };
+}
+
 export async function generateDailyGoals(
   userStats: UserStats,
 ): Promise<DailyGoals> {
+  if (!genAI) {
+    return fallbackGoals(userStats);
+  }
+
   try {
     const prompt = `As a health and fitness expert, please provide personalized daily goals for a user with the following characteristics:
     Age: ${userStats.age || "Not specified"}
@@ -85,16 +129,6 @@ export async function generateDailyGoals(
     };
   } catch (error) {
     console.error("Error generating daily goals:", error);
-    // Return default values if AI generation fails
-    return {
-      waterGoal: 2000,
-      stepsGoal: 10000,
-      caloriesGoal: 2000,
-      proteinGoal: 50,
-      carbsGoal: 275,
-      fatGoal: 55,
-      sleepGoal: 8,
-      rdcGoal: 30,
-    };
+    return fallbackGoals(userStats);
   }
 }

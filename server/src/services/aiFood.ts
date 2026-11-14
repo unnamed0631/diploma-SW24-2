@@ -2,8 +2,12 @@ import { GoogleGenAI } from "@google/genai";
 import puppeteer, { Browser, Page } from "puppeteer";
 import { IUser } from "@/models/user";
 import { IDailyGoal } from "@/models/dailyGoal";
+import { isAiConfigured } from "@/config/env";
+import { AiUnavailableError } from "@/services/aiErrors";
 
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const genAI = isAiConfigured()
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string })
+  : null;
 
 type ImageSource = string | null;
 
@@ -60,21 +64,30 @@ async function scrapeFoodiesfeed(page: Page, foodName: string) {
 }
 
 const genFoodPlan = async (user: IUser, goal?: IDailyGoal | null) => {
+  if (!genAI) {
+    throw new AiUnavailableError("GEMINI_API_KEY is not configured");
+  }
+
   let browser: Browser | null = null;
+  // Image scraping with Puppeteer is slow and needs a Chromium download, so it
+  // is opt-in. Without it meals are still generated, just without photos.
+  const scrapeImages = process.env.FOODPLAN_SCRAPE_IMAGES === "true";
   console.time("genFoodPlan");
   try {
-    browser = await puppeteer.launch({
-      headless: "shell",
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--no-first-run",
-        "--no-zygote",
-        "--disable-gpu",
-      ],
-    });
+    if (scrapeImages) {
+      browser = await puppeteer.launch({
+        headless: "shell",
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--disable-gpu",
+        ],
+      });
+    }
 
     const prompt = `Generate varied and creative food recommendations for USER for breakfast, lunch, dinner, and a snack, aiming for different suggestions each time this is run.
     USER's weight is ${user.weight}kg, height is ${user.height}cm, gender is ${
@@ -143,7 +156,13 @@ only return number values, no units for protein, fat, carbs, calories.`;
     const scrapePromises = mealTypes.map(async (mealType) => {
       let page: Page | null = null;
       try {
-        page = await browser!.newPage();
+        if (!browser) {
+          return {
+            mealType: mealType,
+            data: { ...aiFoodPlan[mealType], image: null },
+          };
+        }
+        page = await browser.newPage();
         await page.setRequestInterception(true);
         page.on("request", (req) => {
           if (["image", "stylesheet", "font"].includes(req.resourceType())) {
@@ -196,6 +215,7 @@ only return number values, no units for protein, fat, carbs, calories.`;
       "Error in genFoodPlan function:",
       error.message ? error.message : error,
     );
+    if (error instanceof AiUnavailableError) throw error;
     return null;
   } finally {
     console.timeEnd("genFoodPlan");

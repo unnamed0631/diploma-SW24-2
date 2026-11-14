@@ -1,8 +1,9 @@
 // RegisterPromptModal.tsx
 import React from "react";
 import { View } from "react-native";
-import { Modal, Portal, Text, Button, useTheme } from "react-native-paper";
+import { Modal, Portal, Text, Button } from "react-native-paper";
 import { useTranslation } from "@/lib/language";
+import { useAppTheme } from "@/lib/theme";
 
 interface RegisterPromptModalProps {
   visible: boolean;
@@ -17,7 +18,7 @@ const RegisterPromptModal = ({
   onConfirm,
   onCancel,
 }: RegisterPromptModalProps) => {
-  const theme = useTheme();
+  const { colors } = useAppTheme();
   const { t } = useTranslation();
 
   return (
@@ -26,7 +27,7 @@ const RegisterPromptModal = ({
         visible={visible}
         onDismiss={onCancel}
         contentContainerStyle={{
-          backgroundColor: theme.colors.background,
+          backgroundColor: colors.card,
           padding: 20,
           margin: 20,
           borderRadius: 10,

@@ -70,8 +70,7 @@ const dailyGoalSchema: Schema<IDailyGoal> = new Schema<IDailyGoal>(
   },
   {
     timestamps: true,
-    _id: false,
-  }
+  },
 );
 
 // Method to check if goals need updating (different day)
@@ -87,7 +86,7 @@ dailyGoalSchema.methods.needsUpdate = function (): boolean {
 
 const DailyGoal: Model<IDailyGoal> = mongoose.model<IDailyGoal>(
   "DailyGoal",
-  dailyGoalSchema
+  dailyGoalSchema,
 );
 
 export default DailyGoal;

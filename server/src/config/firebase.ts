@@ -1,5 +1,11 @@
-import { cert, initializeApp, type ServiceAccount } from "firebase-admin/app";
+import {
+  cert,
+  getApps,
+  initializeApp,
+  type ServiceAccount,
+} from "firebase-admin/app";
 import { getStorage } from "firebase-admin/storage";
+import { isFirebaseConfigured } from "@/config/env";
 
 function loadServiceAccount(): ServiceAccount {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -24,22 +30,27 @@ function loadServiceAccount(): ServiceAccount {
   }
 }
 
-if (!process.env.FIREBASE_STORAGE_BUCKET) {
-  throw new Error("FIREBASE_STORAGE_BUCKET environment variable is not set");
+let app: ReturnType<typeof initializeApp> | null = null;
+
+function getFirebaseApp() {
+  if (app) return app;
+
+  if (!isFirebaseConfigured()) {
+    throw new Error(
+      "Firebase is not configured: set FIREBASE_SERVICE_ACCOUNT and FIREBASE_STORAGE_BUCKET",
+    );
+  }
+
+  const existing = getApps()[0];
+  app =
+    existing ??
+    initializeApp({
+      credential: cert(loadServiceAccount()),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    });
+
+  return app;
 }
 
-const serviceAccount = loadServiceAccount();
-
-let app;
-try {
-  app = initializeApp({
-    credential: cert(serviceAccount),
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  });
-} catch (error) {
-  console.error("Error initializing Firebase:", error);
-  throw error;
-}
-
-export const bucket = getStorage(app).bucket();
-export default app;
+export const getBucket = () =>
+  getStorage(getFirebaseApp()).bucket(process.env.FIREBASE_STORAGE_BUCKET);

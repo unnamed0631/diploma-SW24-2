@@ -10,7 +10,7 @@ interface HeaderProps {
 
 const Header = ({ title, showBackButton = true }: HeaderProps) => {
   const navigation = useNavigation();
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
 
   const handleBackPress = () => {
     if (navigation.canGoBack()) {
@@ -18,20 +18,19 @@ const Header = ({ title, showBackButton = true }: HeaderProps) => {
     }
   };
 
-  const iconColor = theme === "dark" ? "#FFFFFF" : "#000000";
+  const iconColor = colors.foreground;
 
   return (
     <View
       className="
-        flex-row 
-        items-center 
-        justify-between 
-        h-[60px] 
-        px-4 
-        border-b 
-        border-slate-200 
-        bg-white 
-        dark:bg-[#1A202C]
+        flex-row
+        items-center
+        justify-between
+        h-[60px]
+        px-4
+        border-b
+        border-border
+        bg-card
       "
     >
       {showBackButton ? (
@@ -44,12 +43,11 @@ const Header = ({ title, showBackButton = true }: HeaderProps) => {
 
       <Text
         className="
-          flex-1 
-          text-center 
-          text-xl 
-          font-bold 
-          text-black 
-          dark:text-white
+          flex-1
+          text-center
+          text-xl
+          font-bold
+          text-foreground
         "
         numberOfLines={1}
         ellipsizeMode="tail"

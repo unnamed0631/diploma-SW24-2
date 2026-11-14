@@ -1,6 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
+import { isAiConfigured } from "@/config/env";
+import { AiUnavailableError } from "@/services/aiErrors";
 
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const genAI = isAiConfigured()
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string })
+  : null;
 
 interface FoodNutrition {
   food_name: string;
@@ -13,6 +17,10 @@ interface FoodNutrition {
 const analyzeFoodImage = async (
   imageBase64: string,
 ): Promise<FoodNutrition | null> => {
+  if (!genAI) {
+    throw new AiUnavailableError("GEMINI_API_KEY is not configured");
+  }
+
   try {
     const prompt = `Analyze this image and provide nutrition information for the food shown.
     If the image does not contain food, return null.
@@ -63,6 +71,7 @@ const analyzeFoodImage = async (
       fat: Math.max(0, Math.min(100, nutrition.fat)),
     };
   } catch (error) {
+    if (error instanceof AiUnavailableError) throw error;
     console.error("Error analyzing food image:", error);
     return null;
   }

@@ -1,21 +1,41 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useColorScheme, View } from "react-native";
+import { Platform, useColorScheme, View } from "react-native";
 import { colorScheme } from "nativewind";
+import { themeColors, themeVars } from "@/theme";
+import type { ThemeColors, ThemeName } from "@/theme";
 
 const THEME_KEY = "app-theme";
+const isWeb = Platform.OS === "web";
 
-type Theme = "light" | "dark";
+type Theme = ThemeName;
 type ThemeContextType = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  /** Resolved hex values for the current mode (for non-className props). */
+  colors: ThemeColors;
 };
 
 const ThemeContext = createContext<ThemeContextType>({
   theme: "light",
   setTheme: () => {},
+  colors: themeColors.light,
 });
 
+/**
+ * Provides the active colour scheme.
+ *
+ * Colours are static CSS variables compiled from `theme/tokens.js`:
+ *   - native: `:root` variables with light/dark pairs -> switched by
+ *     `colorScheme.set()` (which drives `Appearance`). Nothing about a
+ *     component changes shape mid-lifecycle, so css-interop never remounts.
+ *   - web:    the `.dark` class + `vars()` style, because react-native-web has
+ *     no `Appearance.setColorScheme`.
+ *
+ * Do not add NativeWind variables to a component after its first render: that
+ * makes react-native-css-interop print an upgrade warning and remount the
+ * subtree (which is what used to crash here while serialising props).
+ */
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const system = useColorScheme();
   const [theme, setThemeState] = useState<Theme>("light");
@@ -47,8 +67,13 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
-      <View className={`${theme === "dark" ? "dark" : "light"} flex-1`}>
+    <ThemeContext.Provider
+      value={{ theme, setTheme, colors: themeColors[theme] }}
+    >
+      <View
+        className={`flex-1 ${isWeb ? theme : ""}`}
+        style={isWeb ? themeVars[theme] : undefined}
+      >
         {children}
       </View>
     </ThemeContext.Provider>

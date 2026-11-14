@@ -1,4 +1,5 @@
 import { BarChart, Book, Home, User } from "lucide-react-native";
+import { SymbolView } from "expo-symbols";
 import { useAppTheme } from "@/lib/theme";
 import React, { useEffect, useState } from "react";
 import { LayoutChangeEvent, Pressable, View, Platform } from "react-native";
@@ -70,6 +71,32 @@ const icons = (props: IconProps) => {
   }
 };
 
+/** SF Symbols used on iOS; Android and web keep the Lucide icons. */
+const sfSymbols: Record<
+  labelValues,
+  "house.fill" | "book.fill" | "chart.bar.fill" | "person.fill"
+> = {
+  home: "house.fill",
+  blogs: "book.fill",
+  stats: "chart.bar.fill",
+  profile: "person.fill",
+};
+
+const renderIcon = (props: IconProps) => {
+  if (Platform.OS === "ios") {
+    return (
+      <SymbolView
+        name={sfSymbols[props.label]}
+        tintColor={props.color}
+        size={22}
+        fallback={icons(props)}
+      />
+    );
+  }
+
+  return icons(props);
+};
+
 const TabBarButton = ({
   onPress,
   onLongPress,
@@ -77,8 +104,7 @@ const TabBarButton = ({
   label,
 }: TabButtonProps) => {
   const scale = useSharedValue(0);
-  const { theme } = useAppTheme();
-  const isDark = theme === "dark";
+  const { colors } = useAppTheme();
 
   useEffect(() => {
     scale.set(
@@ -119,14 +145,17 @@ const TabBarButton = ({
       style={buttonStyle}
     >
       <Animated.View style={inimatedIconStyle}>
-        {icons({ color: isFocused ? "#fff" : "gray", label })}
+        {renderIcon({
+          color: isFocused ? colors.primaryForeground : colors.subtle,
+          label,
+        })}
       </Animated.View>
       <Animated.Text
         style={[
           animatedTextStyle,
           {
             textTransform: "capitalize",
-            color: isFocused ? "#fff" : isDark ? "#fff" : "#000",
+            color: isFocused ? colors.primaryForeground : colors.foreground,
           },
         ]}
         className="font-semibold"
@@ -147,7 +176,7 @@ export default function TabBar({
 }: TabBarProps) {
   const [dimensions, setDimensions] = useState({ width: 100, height: 30 });
   const btnWidth = dimensions.width / state.routes.length;
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
   const onTabBarLayout = (e: LayoutChangeEvent) => {
     setDimensions(e.nativeEvent.layout);
   };
@@ -186,7 +215,7 @@ export default function TabBar({
 
   return (
     <View
-      className={`flex-row absolute bottom-[10px] left-0 right-0 items-center h-[60px] justify-between mx-12 px-3 bg-white dark:bg-slate-950 rounded-full ${barMargin}`}
+      className={`flex-row absolute bottom-[10px] left-0 right-0 items-center h-[60px] justify-between mx-12 px-3 bg-card rounded-full ${barMargin}`}
       style={{ boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)" }}
       onLayout={onTabBarLayout}
     >
@@ -196,7 +225,7 @@ export default function TabBar({
           {
             width: btnWidth + 10,
             height: dimensions.height - 12,
-            backgroundColor: theme === "dark" ? "#4C91F9" : "#4C91F9",
+            backgroundColor: colors.primary,
           },
         ]}
         className="z-10 rounded-full -ml-[5px] absolute"

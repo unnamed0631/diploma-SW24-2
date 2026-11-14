@@ -1,6 +1,8 @@
 import { GoogleGenAI, type Content } from "@google/genai";
 import Chat, { IChat } from "@/models/chatbotHistory";
 import { Response } from "express";
+import { isAiConfigured } from "@/config/env";
+import { AiUnavailableError } from "@/services/aiErrors";
 
 export class ChatbotService {
   private genAI: GoogleGenAI;
@@ -8,10 +10,11 @@ export class ChatbotService {
   private systemPrompt: string;
 
   constructor() {
-    const apiKey = process.env.GEMINI_API_KEY as string;
-    if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
+    const apiKey = process.env.GEMINI_API_KEY;
 
-    this.genAI = new GoogleGenAI({ apiKey });
+    // The SDK is still constructed with a placeholder so importing this module
+    // never crashes the server; requests are rejected in sendMessageStream.
+    this.genAI = new GoogleGenAI({ apiKey: apiKey || "missing-key" });
     this.model = "gemini-2.0-flash";
 
     this.systemPrompt = `You are a knowledgeable assistant focused entirely on fitness and health. Your purpose is to provide helpful, accurate information specifically related to fitness, exercise, nutrition, and overall wellness.
@@ -73,6 +76,10 @@ Please remain focused on fitness and health topics..`;
     res: Response,
   ): Promise<void> {
     try {
+      if (!isAiConfigured()) {
+        throw new AiUnavailableError("GEMINI_API_KEY is not configured");
+      }
+
       let chat = await Chat.findOne({ userId });
 
       if (!chat) {
@@ -128,7 +135,11 @@ Please remain focused on fitness and health topics..`;
       await chat.addMessage("model", aiMessage);
     } catch (error: any) {
       console.error("Error in chatbot:", error.message);
-      res.write("event: error\ndata: end\n\n");
+      const payload =
+        error instanceof AiUnavailableError
+          ? { error: error.message, code: "AI_UNAVAILABLE" }
+          : { error: "Failed to process message", code: "CHATBOT_ERROR" };
+      res.write(`event: error\ndata: ${JSON.stringify(payload)}\n\n`);
       res.end();
     }
   }

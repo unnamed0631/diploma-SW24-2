@@ -9,7 +9,7 @@ URL scheme: **`coolfitness`**
 
 **Current status: blocked on authentication.** EAS CLI is not logged in, and the availability check returns the login requirement. See [Blocked here](#blocked-here). No simulator session, EAS build, or login was attempted while preparing this runbook.
 
-The parallel SDK 58 upgrade is **still landing**: `app/package.json` now declares `expo: ~58.0.25`, but several companion Expo packages and React Native still show SDK 53-era versions. Do not build until the parallel upgrade reports complete; section 3.2 is the gate.
+The SDK 58 upgrade **has landed** (`dffe299`): `app/package.json` runs `expo ~58.0.25` / React Native `0.88.1`, and every companion Expo package is on SDK 58. Section 3.2 is still worth running before a build as a config check.
 
 > Commands below use `bunx eas-cli@latest`, which resolved **`eas-cli/27.9.0 linux-x64 node-v26.13.1`** here. If EAS CLI is installed globally, replace it with `eas`. The `simulator:*` commands are experimental; run `bunx eas-cli@latest simulator:start --help` to see the flags your installed version actually supports.
 
@@ -199,14 +199,14 @@ Use a **development build** for this project because it uses `expo-dev-client` a
 Do **not** use `--expo-go` for this app:
 
 - Expo Go supports only projects with **no custom native code**. This project has custom native modules.
-- The project is upgrading to **SDK 58** (`expo: ~58.0.25`), and the SDK 58 Expo Go build is not available until it ships.
+- The project runs **SDK 58** (`expo: ~58.0.25`). Use a development build regardless of Expo Go availability.
 - Even after it ships, Expo Go cannot load these native modules.
 
-A development build also lets you connect to Metro and use Fast Refresh for live code changes. Rebuild the development client **after** the SDK 58 upgrade; do not reuse an older SDK 53 dev build.
+A development build also lets you connect to Metro and use Fast Refresh for live code changes. Rebuild the development client from the upgraded source; do not reuse an older SDK 53 dev build.
 
 ### 3.2 Gate: SDK 58 upgrade complete
 
-The upgrade has landed: `expo ~58.0.25`, `react-native 0.88.1`, `react 19.3.0`, `expo-router ~58.0.31`, Reanimated 4.7.1 + Worklets 0.13, and all Expo modules are on SDK 58. The project typechecks, `expo-doctor` reports 20/20, the Android JS bundle exports successfully, and `expo prebuild --platform android` succeeds. Confirm the resolved config and package before building:
+The upgrade has landed: `expo ~58.0.25`, `react-native 0.88.1`, `react 19.3.1`, `expo-router ~58.0.31`, Reanimated 4.7.1 + Worklets 0.13, and all Expo modules are on SDK 58. The project typechecks, `expo-doctor` reports 20/20, the Android JS bundle exports successfully, and `expo prebuild --platform android` succeeds. Confirm the resolved config and package before building:
 
 ```sh
 cd app

@@ -19,7 +19,7 @@ export function SettingsItem({
   rightElement,
   showChevron = true,
 }: SettingsItemProps) {
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
 
   return (
     <Pressable
@@ -27,22 +27,14 @@ export function SettingsItem({
       onPress={onPress}
     >
       <View className="flex-row items-center gap-8">
-        <View className="bg-blue-50 dark:bg-gray-800 p-4 rounded-full">
-          <Icon
-            source={icon}
-            size={25}
-            color={theme === "dark" ? "#fff" : "#000"}
-          />
+        <View className="bg-primary-soft p-4 rounded-full">
+          <Icon source={icon} size={25} color={colors.foreground} />
         </View>
         <ThemeText className="text-xl font-semibold">{title}</ThemeText>
       </View>
       {rightElement ||
         (showChevron && (
-          <Icon
-            source="chevron-right"
-            size={25}
-            color={theme === "dark" ? "#fff" : "#000"}
-          />
+          <Icon source="chevron-right" size={25} color={colors.foreground} />
         ))}
     </Pressable>
   );

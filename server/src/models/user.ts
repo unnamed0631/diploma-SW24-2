@@ -57,45 +57,58 @@ const userSchema: Schema<IUser> = new Schema<IUser>(
       type: Schema.Types.Mixed,
       required: false,
     },
+    // Onboarding fields are only known after the register wizard, so the OAuth
+    // flow creates the account with an email/password and fills them later.
     gender: {
       type: String,
-      required: true,
+      enum: Object.values(Gender),
+      required: false,
+      default: Gender.MALE,
     },
     birthday: {
       type: Date,
-      required: true,
+      required: false,
+      default: Date.now,
     },
     height: {
       type: Number,
-      required: true,
+      required: false,
+      default: 0,
     },
     weight: {
       type: Number,
-      required: true,
+      required: false,
+      default: 0,
     },
     goal: {
       type: String,
-      required: true,
+      required: false,
+      default: "maintain weight",
     },
     activityLevel: {
       type: String,
-      required: true,
+      required: false,
+      default: "moderate",
     },
     mealPerDay: {
       type: String,
-      required: true,
+      required: false,
+      default: "3 meals",
     },
     waterPerDay: {
       type: String,
-      required: true,
+      required: false,
+      default: "2l",
     },
     workSchedule: {
       type: String,
-      required: true,
+      required: false,
+      default: "regular",
     },
     healthCondition: {
       type: String,
-      required: true,
+      required: false,
+      default: "healthy",
     },
     streak: {
       type: Number,
@@ -115,7 +128,7 @@ const userSchema: Schema<IUser> = new Schema<IUser>(
     lastStreakUpdate: {
       type: Date,
       required: false,
-      default: null,
+      default: undefined,
     },
     password: {
       type: String,
@@ -139,7 +152,7 @@ const userSchema: Schema<IUser> = new Schema<IUser>(
     },
     posts: {
       type: [Schema.Types.ObjectId],
-      ref: "Blog",
+      ref: "Post",
       required: false,
       default: [],
     },
@@ -159,7 +172,9 @@ const userSchema: Schema<IUser> = new Schema<IUser>(
   {
     timestamps: true,
   },
-).index({ email: 1 }, { unique: true });
+);
+
+userSchema.index({ email: 1 }, { unique: true });
 
 const User: Model<IUser> = mongoose.model<IUser>("User", userSchema);
 export default User;

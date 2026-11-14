@@ -29,6 +29,12 @@ const postSchema = new Schema(
       type: String,
       required: true,
     },
+    // Kept for backwards compatibility with older clients, derived from content.
+    description: {
+      type: String,
+      required: false,
+      default: "",
+    },
     author: {
       type: Schema.Types.ObjectId,
       ref: "User",

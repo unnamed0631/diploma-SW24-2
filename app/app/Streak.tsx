@@ -15,7 +15,7 @@ export default function Streak() {
   const confettiRef = useRef<ConfettiCannon>(null);
 
   const { user, accessToken } = useContext(AuthContext);
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
   const {
     completedMonthlyDays,
     isLoadingMonthlyDays,
@@ -85,12 +85,12 @@ export default function Streak() {
       { days: 30, label: "30-Day Streak" },
       { days: 60, label: "60-Day Streak" },
     ],
-    []
+    [],
   );
 
   useEffect(() => {
     const isAchievementMilestone = achievements.some(
-      (ach) => ach.days === globalCurrentStreak && globalCurrentStreak > 0
+      (ach) => ach.days === globalCurrentStreak && globalCurrentStreak > 0,
     );
     if (isAchievementMilestone && confettiRef.current) {
       // Check if this milestone was already hit for this specific streak count to avoid re-triggering too often
@@ -102,20 +102,20 @@ export default function Streak() {
 
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-      <ThemeView className="flex-1 bg-white dark:bg-gray-900">
+      <ThemeView className="flex-1">
         <View className="w-full px-2 mb-2">
-          <Text className="text-lg font-bold text-black dark:text-white mt-10 text-center">
+          <Text className="text-lg font-bold text-foreground mt-10 text-center">
             {t("streak.title")}
           </Text>
         </View>
 
-        <View className="p-4 dark:bg-gray-900">
+        <View className="p-4">
           <View className="flex-row justify-between mb-4">
-            <View className="flex-1 bg-blue-100 p-3 rounded-xl mr-2">
-              <Text className="text-md font-semibold text-blue-800">
+            <View className="flex-1 bg-primary/10 p-3 rounded-xl mr-2">
+              <Text className="text-md font-semibold text-primary">
                 {t("streak.current")}
               </Text>
-              <Text className="text-2xl font-bold text-blue-900">
+              <Text className="text-2xl font-bold text-primary">
                 {globalCurrentStreak} Days
               </Text>
             </View>
@@ -134,10 +134,7 @@ export default function Streak() {
               className="h-64 flex justify-center items-center"
               style={{ height: 362 }}
             >
-              <ActivityIndicator
-                size="large"
-                color={theme === "dark" ? "#FFFFFF" : "#0000FF"}
-              />
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           ) : (
             <MiniCalendar
@@ -152,7 +149,7 @@ export default function Streak() {
 
           {/* Achievements */}
           <View className="mt-6">
-            <Text className="text-lg font-semibold text-black dark:text-white mb-4 text-center">
+            <Text className="text-lg font-semibold text-foreground mb-4 text-center">
               {t("streak.achievements")}
             </Text>
             <View className="flex-row flex-wrap justify-between gap-4">
@@ -160,21 +157,19 @@ export default function Streak() {
                 const unlocked = globalLongestStreak >= achievement.days;
                 const progress = Math.min(
                   globalLongestStreak / achievement.days,
-                  1
+                  1,
                 );
 
                 return (
                   <View
                     key={index}
                     className={`w-[48%] items-center p-4 rounded-xl ${
-                      unlocked ? "bg-green-100" : "bg-gray-200 dark:bg-gray-700"
+                      unlocked ? "bg-green-100" : "bg-muted"
                     }`}
                   >
                     <View
                       className={`h-12 w-12 rounded-full mb-2 items-center justify-center ${
-                        unlocked
-                          ? "bg-green-200"
-                          : "bg-gray-400 dark:bg-gray-600"
+                        unlocked ? "bg-green-200" : "bg-border"
                       }`}
                     >
                       <Text className="text-xl">{unlocked ? "🏆" : "🔒"}</Text>
@@ -182,9 +177,7 @@ export default function Streak() {
 
                     <Text
                       className={`text-sm font-medium ${
-                        unlocked
-                          ? "text-green-800"
-                          : "text-gray-500 dark:text-gray-300"
+                        unlocked ? "text-green-800" : "text-subtle"
                       }`}
                     >
                       {achievement.label}
@@ -194,14 +187,14 @@ export default function Streak() {
                       className={`text-xs mt-1 px-2 py-1 rounded-full ${
                         unlocked
                           ? "bg-green-300 text-green-900"
-                          : "bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300"
+                          : "bg-border text-muted-foreground"
                       }`}
                     >
                       {unlocked ? "Unlocked" : "Locked"}
                     </Text>
 
                     {!unlocked && (
-                      <View className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-full mt-2">
+                      <View className="w-full h-2 bg-border rounded-full mt-2">
                         <View
                           className="h-full bg-green-400 rounded-full"
                           style={{ width: `${progress * 100}%` }}

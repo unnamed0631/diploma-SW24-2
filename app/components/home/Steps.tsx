@@ -13,13 +13,17 @@ import { useState } from "react";
 import { Footprints } from "lucide-react-native";
 import StepsModal from "./StepsModal";
 import { usePedometer } from "@/hooks/usePedometer";
+import { useStatsStore } from "@/stores/statsStore";
 export default function Steps() {
   const { t } = useTranslation();
-  const { theme } = useAppTheme();
+  const { theme, colors } = useAppTheme();
   const [modalVisible, setModalVisible] = useState(false);
 
-  const { isPedometerAvailable, pastStepCount, currentStepCount } =
-    usePedometer();
+  const { steps } = useStatsStore();
+  const { todaySteps, permissionGranted } = usePedometer();
+
+  // The store is the source of truth once the pedometer has synced into it.
+  const displayedSteps = steps > 0 ? steps : todaySteps;
 
   const handlePressIn = () => {
     pressed.value = withTiming(1, { duration: 150 });
@@ -56,7 +60,7 @@ export default function Steps() {
 
   return (
     <Animated.View
-      className="dark:bg-gray-900 rounded-[26px] flex-1 dark:border-gray-800 border-[1px] border-gray-200"
+      className="bg-card rounded-card flex-1 border-[1px] border-border"
       style={animatedStyle}
     >
       <StepsModal visible={modalVisible} setVisible={setModalVisible} />
@@ -71,24 +75,21 @@ export default function Steps() {
             {t("walk.steps")}
           </ThemeText>
           <View className="w-[25px] h-[20px]">
-            <Footprints
-              color={theme === "dark" ? "#ffffff" : "#000000"}
-              size={25}
-            />
+            <Footprints color={colors.foreground} size={25} />
           </View>
         </View>
 
         <View>
-          {isPedometerAvailable === "granted" ? (
-            <Text className="text-2xl text-gray-700 dark:text-gray-200 font-semibold">
-              {pastStepCount ? pastStepCount : currentStepCount}
+          {displayedSteps > 0 || permissionGranted ? (
+            <Text className="text-2xl text-muted-foreground font-semibold">
+              {displayedSteps}
             </Text>
           ) : (
-            <Text className="text-xs text-gray-700 dark:text-gray-200">
+            <Text className="text-xs text-muted-foreground">
               {t("walk.allowPermission")}
             </Text>
           )}
-          <Text className="text-sm font-normal text-slate-400">
+          <Text className="text-sm font-normal text-subtle">
             {t("walk.stepsCount")}
           </Text>
         </View>

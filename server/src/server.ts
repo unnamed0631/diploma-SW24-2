@@ -1,6 +1,11 @@
 import express, { Request, Response, NextFunction } from "express";
 import http from "http";
 import mongoose from "mongoose";
+import { loadEnv, isSeederMode } from "@/config/env";
+
+// Must run before any module reads `process.env` at import time.
+loadEnv();
+
 import { redisMiddleware } from "@/middleware/redisMiddleware";
 import {
   scheduleStreakResetJob,
@@ -70,6 +75,12 @@ async function startServer() {
       console.log(`- Network: http://${addr}:${PORT}`);
     });
   });
+
+  // Seed mode runs a long tool call then exits; background jobs would keep it alive.
+  if (isSeederMode()) {
+    console.log("SEED_MODE=true - skipping cron jobs");
+    return;
+  }
 
   scheduleStreakResetJob();
 }

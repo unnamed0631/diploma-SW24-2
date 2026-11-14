@@ -38,16 +38,11 @@ const convertStoreMessages = (storeMessages: Message[]): Message[] =>
     : [createInitialMessage()];
 
 const LoadingIndicator = () => {
-  const { theme } = useAppTheme();
+  const { colors } = useAppTheme();
   return (
     <View className="flex-row items-center my-4 justify-center gap-2 px-4">
-      <ActivityIndicator
-        size="small"
-        color={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-      />
-      <Text className="text-sm text-gray-500 dark:text-gray-400">
-        Loading history...
-      </Text>
+      <ActivityIndicator size="small" color={colors.mutedForeground} />
+      <Text className="text-sm text-subtle">Loading history...</Text>
     </View>
   );
 };
@@ -61,7 +56,7 @@ export default function ChatScreen() {
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null,
   );
-  const { theme } = useAppTheme();
+  const { theme, colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const {
     sendMessage,
@@ -175,13 +170,13 @@ export default function ChatScreen() {
     !inputText.trim() || isSending || isLoadingHistory || !user;
 
   return (
-    <SafeAreaView className="dark:bg-[#1A202C] bg-white flex-1" edges={["top"]}>
+    <SafeAreaView className="bg-background flex-1" edges={["top"]}>
       {/* <CameraTracking /> */}
       <StatusBar style={theme === "dark" ? "light" : "dark"} hidden={false} />
       <Header title="Chatbot" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="dark:bg-gray-900 bg-white flex-1"
+        className="bg-background flex-1"
         keyboardVerticalOffset={Platform.OS === "ios" ? 35 : 0}
       >
         <FlatList
@@ -199,9 +194,7 @@ export default function ChatScreen() {
           )}
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center">
-              <Text className="text-gray-500 dark:text-gray-400">
-                No messages yet
-              </Text>
+              <Text className="text-subtle">No messages yet</Text>
             </View>
           }
           keyExtractor={(item) => item.id}
@@ -216,7 +209,7 @@ export default function ChatScreen() {
 
         {/* meow input */}
         <View
-          className="flex-row items-center px-4 py-2 border-t border-gray-200 dark:border-gray-800"
+          className="flex-row items-center px-4 py-2 border-t border-border"
           style={{ paddingBottom: insets.bottom + 8 }}
         >
           <Pressable
@@ -229,20 +222,16 @@ export default function ChatScreen() {
               size={24}
               color={
                 isSending || isLoadingHistory
-                  ? theme === "dark"
-                    ? "#4B5563"
-                    : "#D1D5DB"
-                  : theme === "dark"
-                    ? "#9CA3AF"
-                    : "#6B7280"
+                  ? colors.subtle
+                  : colors.mutedForeground
               }
             />
           </Pressable>
 
           <TextInput
-            className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full px-5 py-3 mr-2 text-gray-900 dark:text-gray-100 text-base"
+            className="flex-1 bg-muted rounded-full px-5 py-3 mr-2 text-foreground text-base"
             placeholder="Type a message..."
-            placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+            placeholderTextColor={colors.subtle}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -256,16 +245,21 @@ export default function ChatScreen() {
             onPress={handleSend}
             disabled={buttonDisabled}
             className={`w-10 h-10 rounded-full items-center justify-center ${
-              buttonDisabled ? "bg-gray-300 dark:bg-gray-700" : "bg-blue-500"
+              buttonDisabled ? "bg-muted" : "bg-primary"
             }`}
           >
             {isSending ? (
-              <ActivityIndicator size="small" color="white" />
+              <ActivityIndicator
+                size="small"
+                color={colors.primaryForeground}
+              />
             ) : (
               <Ionicons
                 name="send"
                 size={20}
-                color={buttonDisabled ? "white" : "white"}
+                color={
+                  buttonDisabled ? colors.subtle : colors.primaryForeground
+                }
               />
             )}
           </Pressable>

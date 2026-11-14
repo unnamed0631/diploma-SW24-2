@@ -15,7 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 export default function HomeTab() {
   const router = useRouter();
-  const { theme } = useAppTheme();
+  const { theme, colors } = useAppTheme();
   const settingsAnimation = useSharedValue(0);
   const settingsStyle = useAnimatedStyle(() => {
     return {
@@ -28,7 +28,7 @@ export default function HomeTab() {
   });
   return (
     <>
-      <ScrollView className="p-8 dark:bg-gray-900 bg-white flex-1">
+      <ScrollView className="p-8 bg-background flex-1">
         <View className="w-full flex-row items-center justify-between  gap-2 pb-4">
           {/* top buttons */}
           <View className="flex-row justify-between w-full items-center gap-2">
@@ -45,18 +45,15 @@ export default function HomeTab() {
                 color: theme === "dark" ? "#ffffff20" : "#00000020",
                 radius: 20,
               }}
-              className="border rounded-full p-2 border-gray-200 dark:border-gray-800 w-[40px] aspect-square"
+              className="border rounded-full p-2 border-border w-[40px] aspect-square"
             >
               <Animated.View style={settingsStyle}>
-                <Settings
-                  size={25}
-                  color={theme === "dark" ? "#fff" : "#000"}
-                />
+                <Settings size={25} color={colors.foreground} />
               </Animated.View>
             </Pressable>
             <Pressable
               onPress={() => router.push("/Streak")}
-              className="border rounded-full items-center justify-center relative w-[40px] aspect-square border-gray-200 dark:border-gray-800"
+              className="border rounded-full items-center justify-center relative w-[40px] aspect-square border-border"
             >
               <Flame size={35} />
             </Pressable>

@@ -11,7 +11,7 @@ export function SectionTitle({ title, colors }: SectionTitleProps) {
 
   return (
     <View className="relative mb-4">
-      <Text className="text-[18px] font-semibold tracking-[-0.5px] font-quicksand ">
+      <Text className="text-[18px] font-semibold tracking-[-0.5px] font-quicksand text-foreground">
         {title}
       </Text>
 

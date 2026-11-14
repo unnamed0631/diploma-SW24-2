@@ -81,7 +81,7 @@ export default function Register() {
   };
 
   return (
-    <SafeAreaView className="dark:bg-gray-900 bg-white flex-1">
+    <SafeAreaView className="bg-background flex-1">
       <StepProgressBar maxTabs={maxTabs} />
 
       <View className="flex-1 items-center justify-center overflow-hidden">
@@ -119,7 +119,7 @@ export default function Register() {
         <View className="flex-row w-full px-12 justify-between mt-4 mb-4">
           <View className="overflow-hidden rounded-3xl">
             <Pressable
-              className={`items-center justify-center rounded-3xl font-medium bg-white text-black`}
+              className={`items-center justify-center rounded-3xl font-medium bg-card text-foreground`}
               android_ripple={{
                 color: "#DDDDDD",
                 radius: 50,
@@ -127,7 +127,7 @@ export default function Register() {
               onPress={handleBack}
             >
               <Text
-                className={`text-center text-xl border border-gray-400 rounded-3xl px-5 py-2 text-black`}
+                className={`text-center text-xl border border-border rounded-3xl px-5 py-2 text-foreground`}
               >
                 {t("back")}
               </Text>
@@ -136,7 +136,7 @@ export default function Register() {
           <View className="overflow-hidden rounded-3xl">
             <Pressable
               className={`px-5 py-2 items-center justify-center rounded-3xl font-medium ${
-                nextDisabeled() ? "bg-gray-300" : "bg-blue-500"
+                nextDisabeled() ? "bg-muted" : "bg-primary"
               }`}
               android_ripple={{
                 color: "#DDDDDD20",
@@ -147,7 +147,7 @@ export default function Register() {
             >
               <Text
                 className={`text-center text-xl ${
-                  nextDisabeled() ? "text-gray-400" : "text-white"
+                  nextDisabeled() ? "text-subtle" : "text-primary-foreground"
                 }`}
               >
                 {t("next")}
